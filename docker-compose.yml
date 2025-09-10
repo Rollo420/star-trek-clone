@@ -4,19 +4,13 @@ services:
       context: .
       dockerfile: Docker/Django/Dockerfile
     container_name: django
-  # command entfernt, da jetzt im Dockerfile geregelt
-
+    restart: unless-stopped
     volumes:
       - .:/app
-
+      - ./app/db.sqlite3:/app/app/db.sqlite3
     ports:
       - "8000:8000"
-    
-    #depends_on:
-    #  - db
-
-    networks:
-      - django_network
+    command: python manage.py runserver 0.0.0.0:8000
 
 
 networks:
@@ -25,3 +19,4 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/24
+
