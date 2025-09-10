@@ -1,0 +1,21 @@
+
+FROM python:3.13-slim
+
+# Set working directory
+WORKDIR /app/app
+
+# Copy requirements.txt explicitly to the target location
+COPY ./Docker/Django/requirements.txt /app/requirements.txt
+
+# Copy the app code
+COPY ./app /app
+
+# Install dependencies
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Expose port 8000 for the Django app
+EXPOSE 8000
+
+# Führe Migrationen aus und starte dann den Server
+CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+
