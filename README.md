@@ -1,0 +1,2 @@
+# Bootstrap5 einbinden
+https://www.w3schools.com/django/django_add_bootstrap5.php
