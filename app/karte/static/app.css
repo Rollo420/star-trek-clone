@@ -1,3 +1,69 @@
-body{
-    background-color: green;
+/* app.css */
+
+/* Basis-Styling für einen sauberen Look */
+body {
+    background-color: #f0f2f5;
+    /* Ein heller, moderner Grauton */
+    color: #333;
+    /* Dunkler Text für bessere Lesbarkeit */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Haupt-Container mit abgerundeten Ecken und Schatten für eine moderne Optik */
+.main-container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    /* Dezenter Schatten */
+    padding: 2rem;
+}
+
+/* Spezielle Stile für das Hauptgrafik-Element */
+.wireframe-outline {
+    border: 2px dashed #a0a0a0;
+    height: 600px;
+    /* Erhöhe diesen Wert, um die Höhe der Karte zu vergrößern */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    color: #a0a0a0;
+    border-radius: 8px;
+    background-color: #fefefe;
+}
+
+/* Anpassungen für die Button-Leiste unten */
+.btn-group-footer .btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+/* Stil für alle Box-Elemente */
+.styled-box {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: #fafafa;
+    position: relative;
+    /* Wichtig: Macht den Container zum Bezugspunkt */
+}
+
+/* Stil für die "Fight Points" Anzeige */
+.fight-points {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #fff;
+    background-color: #007bff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    /* Wichtig: Nimmt das Element aus dem normalen Fluss */
+    bottom: 10px;
+    /* Positioniert den Kreis 10px vom unteren Rand */
+    right: 10px;
+    /* Positioniert den Kreis 10px vom rechten Rand */
 }

@@ -12,7 +12,15 @@ services:
       - "8000:8000"
     command: python manage.py runserver 0.0.0.0:8000
 
+  #sass-compiler:
+  #  image: mpsorg/sass-compiler
+  #  volumes:
+  #    - ./resources/scss:/scss
+  #    - ./public/css:/css
+  #  command: >
+  #     sh -c "sass --watch /scss:/css --poll"
 
+       
 networks:
   django_network:
     driver: bridge
