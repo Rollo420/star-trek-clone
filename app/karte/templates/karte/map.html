@@ -1,0 +1,21 @@
+{% extends "karte/base.html" %}
+{% load static %}
+
+{% block map %}
+<div id="hex-map-scroll" style="overflow:auto; width:100%; height:600px;">
+    <svg id="hex-map" style="width:{{ grid_width }}px; height:{{ grid_height }}px;" viewBox="0 0 {{ grid_width }} {{ grid_height }}">
+        {% for hex in hexagons %}
+            {% include "karte/hexagon.html" with hex=hex %}
+        {% endfor %}
+    </svg>
+</div>
+<script src="{% static 'js/map-logic.js' %}"></script>
+<script>
+// Scroll zur Mitte des Gitters
+const scrollDiv = document.getElementById('hex-map-scroll');
+if (scrollDiv) {
+    scrollDiv.scrollLeft = (scrollDiv.scrollWidth - scrollDiv.clientWidth) / 2;
+    scrollDiv.scrollTop = (scrollDiv.scrollHeight - scrollDiv.clientHeight) / 2;
+}
+</script>
+{% endblock %}

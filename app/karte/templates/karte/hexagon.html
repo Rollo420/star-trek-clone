@@ -1,0 +1,12 @@
+<g class="hex-group hex-interactive" transform="translate({{ hex.x }}, {{ hex.y }})">
+    <polygon class="border"
+        points="0,-86 75,-43 75,43 0,86 -75,43 -75,-43"
+        stroke="black" stroke-width="3" fill="white"/>
+    <polygon class="side" data-color="{{ hex.colors.0 }}" points="0,-86 75,-43 65,-37 0,-74" fill="{{ hex.colors.0 }}"/>
+    <polygon class="side" data-color="{{ hex.colors.1 }}" points="75,-43 75,43 65,37 65,-37" fill="{{ hex.colors.1 }}"/>
+    <polygon class="side" data-color="{{ hex.colors.2 }}" points="75,43 0,86 0,74 65,37" fill="{{ hex.colors.2 }}"/>
+    <polygon class="side" data-color="{{ hex.colors.3 }}" points="0,86 -75,43 -65,37 0,74" fill="{{ hex.colors.3 }}"/>
+    <polygon class="side" data-color="{{ hex.colors.4 }}" points="-75,43 -75,-43 -65,-37 -65,37" fill="{{ hex.colors.4 }}"/>
+    <polygon class="side" data-color="{{ hex.colors.5 }}" points="-75,-43 0,-86 0,-74 -65,-37" fill="{{ hex.colors.5 }}"/>
+    <text x="0" y="5" text-anchor="middle" font-size="16">{{ hex.label }}</text>
+</g>
