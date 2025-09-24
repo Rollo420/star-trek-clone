@@ -35,7 +35,7 @@ class cls_sektor(models.Model):
         if self.m_sektorobjekt is not None:
             sektorobjekt = get_object_or_404(cls_sektorobjekt, id=self.m_sektorobjekt.id)
             #print(sektorobjekt)
-            return sektorobjekt.m_Art
+            return sektorobjekt.m_art if sektorobjekt else 0
         return 0
         
 
