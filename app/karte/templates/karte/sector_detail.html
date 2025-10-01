@@ -1,0 +1,149 @@
+{% load static %}
+{% comment %}
+Template to render sector details including image, planets, ships, and subraumenergielevel.
+This will be rendered as HTML and injected into the page via AJAX.
+{% endcomment %}
+
+<style>
+.sector-detail-container {
+    font-family: Arial, sans-serif;
+    color: #333;
+}
+.sector-header {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    margin-bottom: 1rem;
+}
+.sector-header img {
+    border-radius: 50%;
+    border: 2px solid #f39c12;
+}
+.sector-info {
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+.planet-list, .ship-list {
+    margin-bottom: 1rem;
+}
+.planet-item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    background-color: #f9f9f9;
+    cursor: pointer;
+}
+.planet-item:hover {
+    background-color: #f1f1f1;
+}
+.planet-header {
+    font-weight: bold;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.planet-details {
+    margin-top: 0.5rem;
+    padding-left: 1.5rem;
+    display: none;
+    font-size: 0.9rem;
+    color: #555;
+}
+.planet-item.active .planet-details {
+    display: block;
+}
+.planet-image {
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+}
+.ship-list ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+.ship-list li {
+    padding: 0.25rem 0;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.ship-image {
+    height: 40px;
+    width: 40px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+.resource-list {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.5rem;
+}
+</style>
+
+<div class="sector-detail-container">
+    <div class="sector-header">
+        <h5 class="mb-0">Sektor {{ sektor.id }}</h5>
+        {% if image_url %}
+            <img src="{{ image_url }}" alt="Sektor Bild" style="height: 64px; width: 64px;"/>
+        {% endif %}
+    </div>
+
+    <div class="sector-info">
+        Subraumenergielevel: {{ subraumenergielevel }}
+    </div>
+
+    {% if planets_with_indices %}
+    <div class="planet-list">
+        <h6>Planeten ({{ planets_with_indices|length }})</h6>
+        {% for planet, img_num in planets_with_indices %}
+        <div class="planet-item" onclick="this.classList.toggle('active')">
+            <div class="planet-header">
+                <img src="{% static 'img/BilderGalaxy/Stern_' %}{{ img_num }}.png" alt="Planet Bild" class="planet-image"/>
+                <span>{{ planet.m_name }} ({{ planet.m_klasse.m_klasse }} {{ planet.m_klasse.m_typ }})</span>
+            </div>
+            <div class="planet-details">
+                <div>Besitzer: {{ planet.m_besitzer.m_name|default:"-" }}</div>
+                <div>Heimatplanet: {{ planet.m_heimatplanet|yesno:"Ja,Nein" }}</div>
+                <div>Bevölkerung: {{ planet.m_bevoelkerung|default:"-" }}</div>
+                <div>Anbauzone: {{ planet.m_anbauzone|default:"-" }}</div>
+                <div class="resource-list">
+                    <strong>Ressourcen:</strong>
+                    <ul>
+                        {% if planet.m_klasse.m_titan %}<li>Titan</li>{% endif %}
+                        {% if planet.m_klasse.m_deuterium %}<li>Deuterium</li>{% endif %}
+                        {% if planet.m_klasse.m_duranium %}<li>Duranium</li>{% endif %}
+                        {% if planet.m_klasse.m_kristall %}<li>Kristall</li>{% endif %}
+                        {% if planet.m_klasse.m_iridium %}<li>Iridium</li>{% endif %}
+                        {% if planet.m_klasse.m_dilithium %}<li>Dilithium</li>{% endif %}
+                    </ul>
+                </div>
+                <div><em>{{ planet.m_klasse.m_beschreibung }}</em></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if ships %}
+    <div class="ship-list">
+        <h6>Schiffe ({{ ships|length }})</h6>
+        <ul>
+            {% for ship in ships %}
+            <li>
+                <img src="{% static 'img/Ships/'|add:ship.m_imgname|add:'.png' %}" alt="Schiff Bild" class="ship-image"/>
+                <strong>{{ ship.m_name }}</strong> <span class="text-muted">[{{ ship.m_klasse.m_name }}]</span>
+                {% if ship.m_imperium %}
+                <ul>
+                    <li>Imperium: {{ ship.m_imperium.m_name }}</li>
+                </ul>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>

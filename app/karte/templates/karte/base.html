@@ -109,9 +109,9 @@
             </div>
             
             <!-- Schiffsdarstellung & Planetendetails unten -->
-            <div id="planet-detail-bottom" class="styled-box text-center mb-4">
+            <div id="planet-detail-bottom" class="styled-box text-start mb-4">
                 <p class="mb-0">Schiffsgrößen (C, B, A)</p>
-                <!-- Planetendetails werden hier per JS eingefügt -->
+                {% include "karte/sector_detail.html" with sektor=None planets=None ships=None image_url=None subraumenergielevel=None %}
             </div>
             
             <!-- Footer/Datum -->
