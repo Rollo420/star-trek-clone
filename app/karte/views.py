@@ -18,34 +18,25 @@ def map_view(request):
     hex_size = 80
     gap = 8
 
+    # Load hex map - ship checking and logging is done in util.py
     hexagons, grid_width, grid_height = cls_map_randerer.load_hex_map_from_db(hex_size, gap_px=gap)
 
     # Drehung um 90 Grad, um das Hex-Gitter zu korrigieren
     rotation_90 = True
 
-    # Logge alle Sektoren mit Schiffen (nicht 0)
-    all_sektors = cls_sektor.objects.all()
-    sectors_with_ships = []
+    # Count sectors with ships from the loaded data
+    sectors_with_ships = [h for h in hexagons if h.get('has_ships', False)]
     
-    for sektor in all_sektors:
-        ships = cls_schiffe.objects.filter(m_istPos=sektor)
-        if ships.exists():
-            sectors_with_ships.append({
-                'id': sektor.id,
-                'position': f"({sektor.m_x}, {sektor.m_y})",
-                'ship_count': ships.count(),
-                'ships': [f"{s.m_name} ({s.m_rasse})" if s.m_rasse else s.m_name for s in ships]
-            })
-    
-    # Logge die Ergebnisse mit debug() Funktion
-    debug(f"Anzahl der Sektoren mit Schiffen: {len(sectors_with_ships)}", error_type="MAP_VIEW_SCHIFFE")
-    for sector_info in sectors_with_ships:
-        debug(
-            f"Sektor ID {sector_info['id']} | Position {sector_info['position']} | "
-            f"Anzahl Schiffe: {sector_info['ship_count']} | "
-            f"Schiffe: {', '.join(sector_info['ships'])}",
-            error_type="MAP_VIEW_SCHIFFE"
-        )
+    # Log detailed ship info for sectors with ships (weniger verbose als vorher)
+    if sectors_with_ships:
+        debug(f"Anzahl der Sektoren mit Schiffen: {len(sectors_with_ships)}", error_type="MAP_VIEW")
+        for hex in sectors_with_ships[:10]:  # Nur die ersten 10 für Lesbarkeit
+            debug(
+                f"Sektor ID {hex['id']} | Position {hex['label']} | Schiffe: {hex['ship_count']}",
+                error_type="MAP_VIEW"
+            )
+        if len(sectors_with_ships) > 10:
+            debug(f"... und weitere {len(sectors_with_ships) - 10} Sektoren mit Schiffen", error_type="MAP_VIEW")
 
     return render(request, "karte/map.html", {
         "hexagons": hexagons,
