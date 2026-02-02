@@ -5,11 +5,11 @@ from .models import cls_sektor
 from planet.models import cls_planet
 from schiffe.models import cls_schiffe
 from django.template.loader import render_to_string
+from .logger import debug, info, error, logger
 
 # Die Koordinate der Mitte des Gitters, um es zu zentrieren
 GRID_CENTER_Q = 0
 GRID_CENTER_R = 0
-
 
 def index(request):
     return render(request, 'karte/base.html')
@@ -22,6 +22,30 @@ def map_view(request):
 
     # Drehung um 90 Grad, um das Hex-Gitter zu korrigieren
     rotation_90 = True
+
+    # Logge alle Sektoren mit Schiffen (nicht 0)
+    all_sektors = cls_sektor.objects.all()
+    sectors_with_ships = []
+    
+    for sektor in all_sektors:
+        ships = cls_schiffe.objects.filter(m_istPos=sektor)
+        if ships.exists():
+            sectors_with_ships.append({
+                'id': sektor.id,
+                'position': f"({sektor.m_x}, {sektor.m_y})",
+                'ship_count': ships.count(),
+                'ships': [f"{s.m_name} ({s.m_rasse})" if s.m_rasse else s.m_name for s in ships]
+            })
+    
+    # Logge die Ergebnisse mit debug() Funktion
+    debug(f"Anzahl der Sektoren mit Schiffen: {len(sectors_with_ships)}", error_type="MAP_VIEW_SCHIFFE")
+    for sector_info in sectors_with_ships:
+        debug(
+            f"Sektor ID {sector_info['id']} | Position {sector_info['position']} | "
+            f"Anzahl Schiffe: {sector_info['ship_count']} | "
+            f"Schiffe: {', '.join(sector_info['ships'])}",
+            error_type="MAP_VIEW_SCHIFFE"
+        )
 
     return render(request, "karte/map.html", {
         "hexagons": hexagons,
@@ -78,6 +102,9 @@ def sector_detail_json(request, sektor_id):
         'image_url': image_data['url'],
         'subraumenergielevel': sektor.m_subraumenergielevel,
     }
-
+    
+    if ships:
+        debug(f"Anzahl der Schiffe im Sektor {sektor_id}: {len(ships)}", error_type="SEKTOR_DETAIL")
+        
     html = render_to_string('karte/sector_detail.html', context)
     return JsonResponse({'html': html})
