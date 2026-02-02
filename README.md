@@ -103,3 +103,77 @@ Zum Beispiel in deiner `base.html`:
 ```
 
 Deine **Bootstrap-Klassen** (`container`, `text-primary`, `btn`, `btn-success`) stehen dir jetzt in allen Templates zur Verfügung, die von `base.html` erben.
+
+---
+
+## 📝 Logging-System
+
+Dieses Projekt verfügt über ein zentrales Logging-System, das Nachrichten sowohl in der Konsole als auch in eine Log-Datei schreibt.
+
+### Datei
+
+Das Logging-Modul befindet sich unter: `app/karte/logger.py`
+
+### Import
+
+```python
+from app.karte.logger import debug, info, warning, error, critical, exception, logger
+```
+
+### Verfügbare Funktionen
+
+| Funktion | Beschreibung |
+|----------|--------------|
+| `debug(message, error_type=None)` | Debug-Nachrichten |
+| `info(message, error_type=None)` | Informationsnachrichten |
+| `warning(message, error_type=None)` | Warnungen |
+| `error(message, error_type=None)` | Fehler |
+| `critical(message, error_type=None)` | Kritische Fehler |
+| `exception(message, error_type=None)` | Exceptions mit Stacktrace |
+
+Der optionale `error_type` Parameter ermöglicht die Kategorisierung von Meldungen.
+
+### Log-Datei
+
+Alle Nachrichten werden in folgende Datei geschrieben: `app/logs/app.log`
+
+### Konsolen-Format (ohne Datum)
+
+```
+LEVELNAME | Nachricht
+```
+
+### Datei-Format (mit Datum und Zeit)
+
+```
+YYYY-MM-DD HH:MM:SS | LEVELNAME | Nachricht
+```
+
+### Verwendung
+
+```python
+from app.karte.logger import info, error
+
+# Einfache Nachricht
+info("Planet wurde erfolgreich erstellt")
+
+# Mit Fehlertyp
+error("Datenbankverbindung fehlgeschlagen", error_type="DATABASE")
+
+# Exception mit Stacktrace
+try:
+    x = 1 / 0
+except Exception:
+    exception("Ein Fehler ist aufgetreten")
+```
+
+### Logger direkt verwenden
+
+Du kannst auch den Logger direkt importieren und nutzen:
+
+```python
+from app.karte.logger import logger
+
+logger.info("Direkte Logger-Verwendung")
+logger.debug("Debug-Meldung")
+```
