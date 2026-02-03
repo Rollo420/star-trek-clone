@@ -99,3 +99,5 @@ def sector_detail_json(request, sektor_id):
         
     html = render_to_string('karte/sector_detail.html', context)
     return JsonResponse({'html': html})
+
+
