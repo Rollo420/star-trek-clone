@@ -101,3 +101,5 @@ def sector_detail_json(request, sektor_id):
     return JsonResponse({'html': html})
 
 
+def get_sector_fleet_details_json(sectorID):
+        sector = 
