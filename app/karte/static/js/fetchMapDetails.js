@@ -4,7 +4,6 @@ document.addEventListener('sectorChanged', function(e){
 })
 
 async function updateFleetDetails(id) {
-    const container = document.getElementById('fleet-info');
 
     try
     {
