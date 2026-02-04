@@ -19,5 +19,21 @@ function toggleButtonMenu(button, targetId) {
         if (target) {
             target.style.display = 'block';
         }
+
+        // Button Styling (Active State)
+        const buttons = document.querySelectorAll('.button-menu button');
+        buttons.forEach(btn => btn.classList.remove('active-tab-btn', 'btn-light'));
+        buttons.forEach(btn => btn.classList.add('btn-dark')); // Reset style
+
+        button.classList.remove('btn-dark');
+        button.classList.add('active-tab-btn', 'btn-light'); // Highlight active
     }
+}
+
+async function onSectorSelect(sectorID) {
+    
+    //Create a Custome Event
+    const event = new CustomEvent('sectorChanged', {detail: {sectorID: sectorID}});
+
+    document.dispatchEvent(event);
 }
