@@ -110,20 +110,5 @@ document.addEventListener('DOMContentLoaded', () => {
         // Highlight: aktives Hex
         g.querySelector('.border').setAttribute('stroke', selectionColor);
         selectedHex = g;
-
-        // Lade Sektor-Details per AJAX und zeige im unteren Bereich
-        fetch(`/karte/sector/${id}/json/`)
-            .then(r => r.ok ? r.json() : null)
-            .then(data => {
-                if (data) {
-                    const planetBottom = document.getElementById('planet-detail-bottom');
-                    if (planetBottom) {
-                        planetBottom.innerHTML = data.html;
-                    }
-                } else {
-                    console.error('Fehler beim Laden der Sektordaten.');
-                }
-            })
-            .catch(err => console.error('Netzwerkfehler:', err));
     });
 });

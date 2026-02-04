@@ -1,6 +1,8 @@
 import math
 from .models import cls_sektor
 from planet.models import cls_planet
+from schiffe.models import cls_schiffe
+from .logger import debug, info
 from django.templatetags.static import static
 
 # Die Map, die Bildpfade und Rotationswerte enthält.
@@ -64,6 +66,11 @@ class cls_map_randerer:
         max_x, max_y = float("-inf"), float("-inf")
         
         planeten_map = cls.get_sektor_planets()
+        
+        # Zähler für Logging
+        sectors_with_ships = 0
+        sectors_without_ships = 0
+        total_ships = 0
 
         for sektor in cls_sektor.objects.all():
             q = sektor.m_cx
@@ -82,6 +89,17 @@ class cls_map_randerer:
             min_y, max_y = min(min_y, y), max(max_y, y)
 
             image_data = cls.get_image_data(sektor)
+            
+            # Prüfe ob Schiffe in diesem Sektor vorhanden sind
+            ships = cls_schiffe.objects.filter(m_istPos=sektor)
+            ship_count = ships.count()
+            has_ships = ship_count > 0
+            
+            if has_ships:
+                sectors_with_ships += 1
+                total_ships += ship_count
+            else:
+                sectors_without_ships += 1
 
             hexagons.append({
                 "id": sektor.id,
@@ -91,6 +109,8 @@ class cls_map_randerer:
                 "planets": planeten_map.get(sektor.id, []),
                 "image_url": image_data['url'],
                 "rotation": image_data['rotation'],
+                "has_ships": has_ships,
+                "ship_count": ship_count,
             })
 
         for hex in hexagons:
@@ -99,5 +119,8 @@ class cls_map_randerer:
         
         grid_width = (max_x - min_x) + hex_size * math.sqrt(3)
         grid_height = (max_y - min_y) + hex_size * 2
+        
+        # Logging der Zusammenfassung
+        info(f"Map geladen: {len(hexagons)} Sektoren | Mit Schiffen: {sectors_with_ships} | Ohne Schiffe: {sectors_without_ships} | Gesamtschiffe: {total_ships}", error_type="MAP_LOAD")
         
         return hexagons, grid_width, grid_height
