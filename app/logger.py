@@ -1,6 +1,7 @@
 """
-Logger Utility für Django-Projekt
-Einfaches Importieren und Nutzen für Debug, Info, Warning, Error
+Zentraler Logger für das Star Trek Django-Projekt
+Einfaches Importieren und Nutzen von jedem App aus:
+    from app.logger import logger, info, debug, warning, error
 """
 
 import logging
@@ -10,8 +11,8 @@ from datetime import datetime
 # Logger Name
 LOGGER_NAME = "star_trek_logger"
 
-# Log-Datei Pfad
-LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
+# Log-Datei Pfad (app/logs/app.log)
+LOG_DIR = os.path.join(os.path.dirname(__file__), 'logs')
 LOG_FILE = os.path.join(LOG_DIR, 'app.log')
 
 # Erstelle Log-Verzeichnis falls nicht vorhanden

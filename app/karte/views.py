@@ -1,3 +1,4 @@
+import logging
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from .util import cls_map_randerer
@@ -5,7 +6,9 @@ from .models import cls_sektor
 from planet.models import cls_planet
 from schiffe.models import cls_schiffe
 from django.template.loader import render_to_string
-from .logger import debug, info, error, logger
+
+# Zentrales Logging - funktioniert automatisch mit Django!
+logger = logging.getLogger(__name__)
 
 # Die Koordinate der Mitte des Gitters, um es zu zentrieren
 GRID_CENTER_Q = 0
@@ -29,14 +32,13 @@ def map_view(request):
     
     # Log detailed ship info for sectors with ships (weniger verbose als vorher)
     if sectors_with_ships:
-        debug(f"Anzahl der Sektoren mit Schiffen: {len(sectors_with_ships)}", error_type="MAP_VIEW")
+        logger.info(f"Anzahl der Sektoren mit Schiffen: {len(sectors_with_ships)}")
         for hex in sectors_with_ships[:10]:  # Nur die ersten 10 für Lesbarkeit
-            debug(
-                f"Sektor ID {hex['id']} | Position {hex['label']} | Schiffe: {hex['ship_count']}",
-                error_type="MAP_VIEW"
+            logger.info(
+                f"Sektor ID {hex['id']} | Position {hex['label']} | Schiffe: {hex['ship_count']}"
             )
         if len(sectors_with_ships) > 10:
-            debug(f"... und weitere {len(sectors_with_ships) - 10} Sektoren mit Schiffen", error_type="MAP_VIEW")
+            logger.info(f"... und weitere {len(sectors_with_ships) - 10} Sektoren mit Schiffen")
 
     return render(request, "karte/map.html", {
         "hexagons": hexagons,
@@ -95,11 +97,8 @@ def sector_detail_json(request, sektor_id):
     }
     
     if ships:
-        debug(f"Anzahl der Schiffe im Sektor {sektor_id}: {len(ships)}", error_type="SEKTOR_DETAIL")
+        logger.info(f"Anzahl der Schiffe im Sektor {sektor_id}: {len(ships)}")
         
     html = render_to_string('karte/sector_detail.html', context)
     return JsonResponse({'html': html})
 
-
-def get_sector_fleet_details_json(sectorID):
-        pass

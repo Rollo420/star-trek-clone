@@ -1,9 +1,12 @@
+import logging
 import math
 from .models import cls_sektor
 from planet.models import cls_planet
 from schiffe.models import cls_schiffe
-from .logger import debug, info
 from django.templatetags.static import static
+
+# Zentrales Logging - funktioniert automatisch mit Django!
+logger = logging.getLogger(__name__)
 
 # Die Map, die Bildpfade und Rotationswerte enthält.
 IMAGE_MAPPING = {
@@ -121,6 +124,7 @@ class cls_map_randerer:
         grid_height = (max_y - min_y) + hex_size * 2
         
         # Logging der Zusammenfassung
-        info(f"Map geladen: {len(hexagons)} Sektoren | Mit Schiffen: {sectors_with_ships} | Ohne Schiffe: {sectors_without_ships} | Gesamtschiffe: {total_ships}", error_type="MAP_LOAD")
+        logger.info(f"Map geladen: {len(hexagons)} Sektoren | Mit Schiffen: {sectors_with_ships} | Ohne Schiffe: {sectors_without_ships} | Gesamtschiffe: {total_ships}")
         
         return hexagons, grid_width, grid_height
+

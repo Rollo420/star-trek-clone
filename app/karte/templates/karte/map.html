@@ -2,13 +2,8 @@
 {% load static %}
 
 {% block map %}
-<<<<<<< HEAD
-<div id="hex-map-scroll" style="overflow:auto; width:100%; height:600px;">
-    <svg id="hex-map" style="display:block; width:{{ grid_width }}px; height:{{ grid_height }}px;" viewBox="0 0 {{ grid_width }} {{ grid_height }}">
-=======
 <div id="hex-map-scroll" style="flex: 1; overflow:hidden; width:100%; height:600px;">
     <svg id="hex-map" style="width:{{ grid_width }}px; height:{{ grid_height }}px;" viewBox="0 0 {{ grid_width }} {{ grid_height }}">
->>>>>>> 3a9a69f1cc74426b975c2dcf5c3ffce6205cd0b9
         <image x="0" y="0" width="{{ grid_width }}" height="{{ grid_height }}" xlink:href="{% static 'img/BilderGalaxy/Hintergrund.jpg' %}" href="{% static 'img/BilderGalaxy/Hintergrund.jpg' %}" preserveAspectRatio="xMidYMid slice" />
         {% for hex in hexagons %}
             {% include "karte/hexagon.html" with hex=hex %}
