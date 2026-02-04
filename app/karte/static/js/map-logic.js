@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     svg.addEventListener('click', (e) => {
         const g = e.target.closest('.hex-group');
         if (!g) return;
-        const id = g.dataset.id;
+        const sectorID = g.dataset.id;
 
         // Optimierung: Nur das vorherige Hex zurücksetzen, nicht alle
         if (selectedHex && selectedHex !== g) {
@@ -110,5 +110,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Highlight: aktives Hex
         g.querySelector('.border').setAttribute('stroke', selectionColor);
         selectedHex = g;
+
+        // sectorChanged Event auslösen, um Planet-Details zu laden
+        const event = new CustomEvent('sectorChanged', { detail: { sectorID } });
+        document.dispatchEvent(event);
     });
 });
