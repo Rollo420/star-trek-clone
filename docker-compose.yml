@@ -6,7 +6,7 @@ services:
     container_name: django
     restart: unless-stopped
     volumes:
-      - .:/app
+      - ./app:/app
       - ./app/db.sqlite3:/app/app/db.sqlite3
     ports:
       - "8000:8000"

@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'karte',
     'module',
     'planet',
-    'schiffe',    
+    'schiffe',  
+    'django_extensions'  
 ]
 
 MIDDLEWARE = [
