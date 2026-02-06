@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'module',
     'planet',
     'schiffe',  
-    'django_extensions'  
+    'r'  
 ]
 
 MIDDLEWARE = [
