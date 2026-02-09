@@ -47,6 +47,30 @@ def map_view(request):
         "rotation_90": rotation_90,
     })
 
+def map_data_json(request):
+    """
+    Liefert die Kartendaten als JSON für das HTML5 Canvas Rendering.
+    """
+    hex_size = 80
+    gap = 8
+    hexagons, grid_width, grid_height = cls_map_randerer.load_hex_map_from_db(hex_size, gap_px=gap)
+
+    # Daten für JSON aufbereiten (Django Models sind nicht direkt serialisierbar)
+    data = []
+    for h in hexagons:
+        data.append({
+            'id': h['id'],
+            'x': h['x'],
+            'y': h['y'],
+            'label': h['label'],
+            'image_url': h['image_url'],
+            'rotation': h['rotation'],
+            'has_ships': h['has_ships'],
+            'ship_count': h['ship_count'],
+        })
+
+    return JsonResponse({'hexagons': data})
+
 def fetch_map_model(request):
     all_sektors = cls_sektor.objects.all()
 
@@ -101,4 +125,3 @@ def sector_detail_json(request, sektor_id):
         
     html = render_to_string('karte/sector_detail.html', context)
     return JsonResponse({'html': html})
-

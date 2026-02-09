@@ -1,118 +1,224 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const svg = document.getElementById('hex-map');
-    const wrapper = document.getElementById('hex-map-scroll');
-    const selectionColor = '#00ff00';
-    let selectedHex = null;
+    const canvas = document.getElementById('hex-map-canvas');
+    if (!canvas) return; // Abbruch, falls Canvas nicht existiert
 
-    // Variablen für Drag & Drop (Panning)
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-    let scrollLeftStart = 0;
-    let scrollTopStart = 0;
-    let rafId = null;
+    const container = document.getElementById('hex-map-container');
+    const loadingIndicator = document.getElementById('map-loading');
+    const ctx = canvas.getContext('2d', { alpha: false }); // Alpha false für Performance
 
-    // Initialisierung: SVG auf Startgröße setzen, damit Scrollen funktioniert
-    const baseWidth = svg.viewBox.baseVal.width;
-    const baseHeight = svg.viewBox.baseVal.height;
-    let currentScale = 1.0;
+    // Konfiguration
+    const HEX_SIZE = 80; // Muss mit Python übereinstimmen
+    // Breite eines Hexagons (flache Seite oben/unten bei Pointy Top oder umgekehrt, hier basierend auf Python Logik)
+    // Python nutzt: x = scale * (sqrt(3)*r + sqrt(3)/2*q), y = scale * (3/2*q)
+    // Das entspricht Pointy-Top Orientierung.
+    const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE; 
+    const HEX_HEIGHT = 2 * HEX_SIZE;
+
+    // State
+    let hexagons = [];
+    let images = {}; // Image Cache
+    let selectedHexId = null;
     
-    svg.style.width = `${baseWidth}px`;
-    svg.style.height = `${baseHeight}px`;
+    // Kamera / Viewport
+    let camera = { x: 0, y: 0, zoom: 0.5 }; // Start Zoom etwas weiter weg
+    let isDragging = false;
+    let lastMouse = { x: 0, y: 0 };
 
-    wrapper.addEventListener('mousedown', e => {
-        if(e.button !== 0) return; // Nur Linksklick
-        isDragging = true;
-        wrapper.style.cursor = 'grabbing';
-        startX = e.clientX;
-        startY = e.clientY;
-        scrollLeftStart = wrapper.scrollLeft;
-        scrollTopStart = wrapper.scrollTop;
-    });
+    // --- Initialisierung ---
 
-    wrapper.addEventListener('mouseup', () => {
-        isDragging = false;
-        wrapper.style.cursor = 'grab';
-    });
+    function resize() {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        requestAnimationFrame(draw);
+    }
+    window.addEventListener('resize', resize);
+    resize();
 
-    wrapper.addEventListener('mouseleave', () => {
-        isDragging = false;
-        wrapper.style.cursor = 'grab';
-    });
+    // Daten laden
+    fetch('/karte/map-data-json/')
+        .then(res => res.json())
+        .then(data => {
+            hexagons = data.hexagons;
+            preloadImages(hexagons);
+        })
+        .catch(err => console.error("Fehler beim Laden der Karte:", err));
 
-    wrapper.addEventListener('mousemove', e => {
-        if(!isDragging) return;
-        e.preventDefault();
+    function preloadImages(hexList) {
+        const uniqueUrls = [...new Set(hexList.map(h => h.image_url).filter(u => u))];
+        let loadedCount = 0;
         
-        // Performance: Nutzung von requestAnimationFrame verhindert Ruckeln
-        if (!rafId) {
-            rafId = requestAnimationFrame(() => {
-                const dx = e.clientX - startX;
-                const dy = e.clientY - startY;
-                wrapper.scrollLeft = scrollLeftStart - dx;
-                wrapper.scrollTop = scrollTopStart - dy;
-                rafId = null;
-            });
+        if (uniqueUrls.length === 0) {
+            finishLoading();
+            return;
+        }
+
+        uniqueUrls.forEach(url => {
+            const img = new Image();
+            img.src = url;
+            img.onload = () => {
+                loadedCount++;
+                if (loadedCount === uniqueUrls.length) finishLoading();
+            };
+            img.onerror = () => { // Auch bei Fehler weiterzählen
+                loadedCount++;
+                if (loadedCount === uniqueUrls.length) finishLoading();
+            };
+            images[url] = img;
+        });
+    }
+
+    function finishLoading() {
+        if(loadingIndicator) loadingIndicator.style.display = 'none';
+        // Zentriere Kamera auf den ersten Sektor oder (0,0)
+        if (hexagons.length > 0) {
+            // Optional: Startposition setzen
+        }
+        requestAnimationFrame(draw);
+    }
+
+    // --- Rendering ---
+
+    function drawHexagonPath(ctx, x, y, r) {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            // Pointy Top: Winkel bei 30°, 90°, 150°... (in Radiant)
+            const angle = (Math.PI / 3) * i + (Math.PI / 6);
+            const px = x + r * Math.cos(angle);
+            const py = y + r * Math.sin(angle);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+    }
+
+    function draw() {
+        // Hintergrund
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        
+        // Kamera Transformation
+        // Wir verschieben den Ursprung in die Mitte des Canvas
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.scale(camera.zoom, camera.zoom);
+        ctx.translate(-camera.x, -camera.y);
+
+        // Viewport Berechnung für Culling (nur sichtbare zeichnen)
+        // Sichtbarer Bereich in Welt-Koordinaten berechnen
+        const viewL = camera.x - (canvas.width / 2) / camera.zoom - HEX_SIZE;
+        const viewR = camera.x + (canvas.width / 2) / camera.zoom + HEX_SIZE;
+        const viewT = camera.y - (canvas.height / 2) / camera.zoom - HEX_SIZE;
+        const viewB = camera.y + (canvas.height / 2) / camera.zoom + HEX_SIZE;
+
+        hexagons.forEach(hex => {
+            // Culling: Überspringen wenn außerhalb des Bildschirms
+            if (hex.x < viewL || hex.x > viewR || hex.y < viewT || hex.y > viewB) return;
+
+            // Bild zeichnen
+            if (hex.image_url && images[hex.image_url]) {
+                const size = HEX_WIDTH; // Annahme: Bilder sind quadratisch/passend
+                // Zentriert zeichnen
+                ctx.drawImage(images[hex.image_url], hex.x - size/2, hex.y - size/2, size, size);
+            } else {
+                // Fallback: Einfacher Kreis oder Hexagon wenn kein Bild
+                drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
+                ctx.lineWidth = 1 / camera.zoom; // Dünne Linie, skaliert mit Zoom
+                ctx.strokeStyle = '#333';
+                ctx.stroke();
+            }
+
+            // Selektion Highlight
+            if (hex.id == selectedHexId) {
+                drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
+                ctx.lineWidth = 5 / camera.zoom; // Linie bleibt gleich dick egal wie der Zoom ist
+                ctx.strokeStyle = '#00ff00';
+                ctx.stroke();
+            }
+        });
+
+        ctx.restore();
+    }
+
+    // --- Interaktion ---
+
+    container.addEventListener('mousedown', e => {
+        if (e.button !== 0) return; // Nur Linksklick
+        isDragging = true;
+        lastMouse = { x: e.clientX, y: e.clientY };
+        container.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+        container.style.cursor = 'grab';
+    });
+
+    container.addEventListener('mousemove', e => {
+        if (isDragging) {
+            const dx = e.clientX - lastMouse.x;
+            const dy = e.clientY - lastMouse.y;
+            lastMouse = { x: e.clientX, y: e.clientY };
+
+            // Kamera bewegen (Gegenteil der Mausbewegung / Zoom berücksichtigen)
+            camera.x -= dx / camera.zoom;
+            camera.y -= dy / camera.zoom;
+            
+            requestAnimationFrame(draw);
         }
     });
 
-    // Zoom-Logik (Mausrad)
-    wrapper.addEventListener('wheel', e => {
+    container.addEventListener('wheel', e => {
         e.preventDefault();
-
-        
         const zoomIntensity = 0.1;
         const direction = Math.sign(e.deltaY); // 1 = raus, -1 = rein
+        const scaleFactor = Math.exp(direction * -zoomIntensity); // Negativ, damit Scrollen intuitiv ist
         
-        // Berechne neuen Zoom-Faktor
-        const scaleFactor = Math.exp(direction * zoomIntensity);
-        let newScale = currentScale / scaleFactor; // Umgekehrte Logik für intuitives Mausrad
+        const newZoom = Math.max(0.05, Math.min(5.0, camera.zoom * scaleFactor));
         
-        // Begrenzung (Min / Max Zoom)
-        const minZoom = 0.2; // Minimaler Zoom (z.B. 0.2 = 20%)
-        const maxZoom = 5.0; // Maximaler Zoom (z.B. 5.0 = 500%)
-        newScale = Math.max(minZoom, Math.min(maxZoom, newScale));
+        // Optional: Zoom zur Mausposition (etwas komplexer, hier vereinfachtes Zoom zur Mitte)
+        camera.zoom = newZoom;
         
-        console.log("Aktueller Zoom:", newScale.toFixed(2));
-
-        // Mausposition relativ zum Wrapper
-        const rect = wrapper.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        // Mausposition relativ zum Inhalt (vor dem Zoom)
-        const contentMouseX = mouseX + wrapper.scrollLeft;
-        const contentMouseY = mouseY + wrapper.scrollTop;
-
-        // Neue Größe anwenden
-        currentScale = newScale;
-        svg.style.width = (baseWidth * currentScale) + 'px';
-        svg.style.height = (baseHeight * currentScale) + 'px';
-
-        // Scroll-Position anpassen, um zur Maus zu zoomen
-        wrapper.scrollLeft = (contentMouseX * (1 / scaleFactor)) - mouseX;
-        wrapper.scrollTop = (contentMouseY * (1 / scaleFactor)) - mouseY;
+        requestAnimationFrame(draw);
     }, { passive: false });
 
-    svg.addEventListener('click', (e) => {
-        const g = e.target.closest('.hex-group');
-        if (!g) return;
-        const sectorID = g.dataset.id;
+    container.addEventListener('click', e => {
+        if (isDragging) return; // Nicht klicken wenn gezogen wurde
 
-        // Optimierung: Nur das vorherige Hex zurücksetzen, nicht alle
-        if (selectedHex && selectedHex !== g) {
-            selectedHex.querySelector('.border').setAttribute('stroke', 'black');
-            selectedHex.querySelectorAll('.side').forEach(side => {
-                side.setAttribute('fill', side.dataset.color);
-            });
+        // Mausposition im Canvas
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        // Umrechnung in Welt-Koordinaten
+        const worldX = (mx - canvas.width / 2) / camera.zoom + camera.x;
+        const worldY = (my - canvas.height / 2) / camera.zoom + camera.y;
+
+        // Nächstes Hexagon finden (Hit Detection)
+        // Bei 65k Elementen ist eine einfache Schleife in JS immer noch sehr schnell (<10ms)
+        let closestHex = null;
+        let minDistSq = Infinity;
+        const radiusSq = (HEX_SIZE) * (HEX_SIZE); // Klick-Radius
+
+        for (let i = 0; i < hexagons.length; i++) {
+            const h = hexagons[i];
+            const dx = h.x - worldX;
+            const dy = h.y - worldY;
+            const distSq = dx*dx + dy*dy;
+            
+            if (distSq < radiusSq && distSq < minDistSq) {
+                minDistSq = distSq;
+                closestHex = h;
+            }
         }
 
-        // Highlight: aktives Hex
-        g.querySelector('.border').setAttribute('stroke', selectionColor);
-        selectedHex = g;
-
-        // sectorChanged Event auslösen, um Planet-Details zu laden
-        const event = new CustomEvent('sectorChanged', { detail: { sectorID } });
-        document.dispatchEvent(event);
+        if (closestHex) {
+            selectedHexId = closestHex.id;
+            requestAnimationFrame(draw);
+            
+            // Event feuern wie im alten Code
+            const event = new CustomEvent('sectorChanged', { detail: { sectorID: closestHex.id } });
+            document.dispatchEvent(event);
+        }
     });
 });
