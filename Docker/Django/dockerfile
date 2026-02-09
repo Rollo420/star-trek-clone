@@ -1,21 +1,42 @@
+# Wir nutzen 3.12-slim für eine gute Mischung aus Stabilität und geringer Größe
+FROM python:3.12-slim
 
-FROM python:3.13-slim
+# Verhindert, dass Python .pyc Dateien schreibt und sorgt für direktes Terminal-Logging
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Set working directory
-WORKDIR /app/app
+# System-Abhängigkeiten (Kein sudo nötig, da wir root sind)
+# gcc, graphviz-dev und build-essential werden für pygraphviz benötigt
+RUN apt-get update && apt-get install -y \
+    gcc \
+    python3-dev \
+    graphviz \
+    graphviz-dev \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements.txt explicitly to the target location
+# Arbeitsverzeichnis im Container festlegen
+WORKDIR /app
+
+# 1. Requirements zuerst kopieren (Nutzt Docker-Cache effizient)
+# Kopiert die Datei von deinem Docker-Ordner direkt in das Workdir
 COPY ./Docker/Django/requirements.txt /app/requirements.txt
 
-# Copy the app code
-COPY ./app /app
+# 2. Abhängigkeiten installieren
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r /app/requirements.txt
 
-# Install dependencies
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# 3. Den gesamten App-Code kopieren
+# Dies kopiert den Inhalt deines lokalen /app Ordners direkt nach /app im Container
+COPY ./app /app/
 
-# Expose port 8000 for the Django app
+# Falls manage.py im Unterordner liegt, verschieben wir den Fokus oder 
+# stellen sicher, dass die Datei jetzt in /app/manage.py liegt.
+RUN ls -la /app
+
+# Port für Django freigeben
 EXPOSE 8000
 
-# Führe Migrationen aus und starte dann den Server
+# Startbefehl: Migrationen ausführen und Server starten
+# Ohne Warnungen beim Shutdown, wie von dir gewünscht
 CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
-
