@@ -42,8 +42,7 @@ INSTALLED_APPS = [
     'karte',
     'module',
     'planet',
-    'schiffe',  
-    'r'  
+    'schiffe',
 ]
 
 MIDDLEWARE = [
