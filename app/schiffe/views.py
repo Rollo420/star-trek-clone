@@ -1,53 +1,51 @@
 import logging
-import json
+from collections import defaultdict
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
-from django.forms.models import model_to_dict
 from karte.models import cls_sektor
-from imperium.models import cls_ImperiumScan
 from .models import cls_schiffe
+from django.forms.models import model_to_dict
 
-# Logger initialisieren
 logger = logging.getLogger(__name__)
 
+# Hilfsfunktion für sicheren Attribut-Zugriff
+def get_val(obj, *attrs):
+    for attr in attrs:
+        obj = getattr(obj, attr, None)
+        if obj is None: break
+    return obj
+        
 def get_sector_fleet_details_json(request, sectorID):
-
     sector = get_object_or_404(cls_sektor, id=sectorID)
 
-    #Dsa ist quasi der Dango Innerjoin über zwei Klassen (m_klasse, cls_schiffskalsse)# Du folgst den Variablennamen aus deinen Models:
-    shipInSector = cls_schiffe.objects.filter(m_istPos=sector).select_related('m_sensor','m_klasse__m_schiffskategorie')
+    ships_in_sector = cls_schiffe.objects.filter(m_istPos=sector).select_related(
+        'm_imperium', 'm_klasse__m_schiffskategorie', 'm_warpkern', 
+        'm_schilde', 'm_deflektor', 'm_sensor'
+    )
 
-    if not shipInSector:
+    if not ships_in_sector.exists():
         return JsonResponse({'message': 'no ships in the sector'})
 
-    shipsFromImperium = {}
-    for ship in shipInSector:
+    # Die korrekte Struktur: Ein Dict, das Dicts enthält, die Listen enthalten
+    # Das verhindert den AttributeError, da die letzte Ebene fest als Liste definiert ist
+    ships_from_imperium = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
-        if ship.m_imperium:
-            imperiumName = ship.m_imperium.m_name
-            
-        else:
-            imperiumName = f"Unknown"
-        
-        if ship.m_klasse:
-            shipBuildArt = ship.m_klasse
-            
-            if ship.m_klasse.m_schiffskategorie:
-                shipCatogory = ship.m_klasse.m_schiffskategorie
-        else:
-            shipBuildArt = None
-            shipCatogory = None
-        
-        
-        if imperiumName not in shipsFromImperium:
-            shipsFromImperium[imperiumName] = {}
+    for ship in ships_in_sector:
 
-        if shipBuildArt.m_name not in shipsFromImperium[imperiumName]:
-            shipsFromImperium[imperiumName][shipBuildArt.m_name] = {}
-            
-            if shipCatogory.m_name not in shipsFromImperium[imperiumName][shipBuildArt.m_name]:
-                shipsFromImperium[imperiumName][shipBuildArt.m_name][shipCatogory.m_name] = []
-                
-        shipsFromImperium[imperiumName][shipBuildArt.m_name][shipCatogory.m_name] = (model_to_dict(ship, exclude=['cls_Module']))
-        
-    return JsonResponse(shipsFromImperium)
+        imp_name = get_val(ship, 'm_imperium', 'm_name') or "Unknown"
+        cat_name = get_val(ship, 'm_klasse', 'm_schiffskategorie', 'm_name') or "Unknown Category"
+        class_name = get_val(ship, 'm_klasse', 'm_name') or "Unknown Class"
+
+
+        ships_from_imperium[imp_name][cat_name][class_name].append({
+            'id': ship.id,
+            'name': getattr(ship, 'm_name', f"Ship {ship.id}"),
+            'components': {
+                'warpkern': model_to_dict(ship.m_warpkern),
+                'deflektor': model_to_dict(ship.m_deflektor),
+                'sensor': model_to_dict(ship.m_sensor),
+                'schilde': model_to_dict(ship.m_schilde),
+            }
+        })
+
+    return JsonResponse(ships_from_imperium)

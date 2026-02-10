@@ -1,6 +1,6 @@
 document.addEventListener('sectorChanged', function (e) {
     const sectorID = e.detail.sectorID;
-    updateFleetDetails(sectorID);
+    updateFleetDetails(252);
 })
 
 async function updateFleetDetails(id) {
