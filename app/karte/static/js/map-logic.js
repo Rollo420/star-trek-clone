@@ -1,10 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('hex-map-canvas');
-    if (!canvas) return; // Abbruch, falls Canvas nicht existiert
+    if (!canvas) 
+        return; 
 
     const container = document.getElementById('hex-map-container');
     const loadingIndicator = document.getElementById('map-loading');
-    const ctx = canvas.getContext('2d', { alpha: false }); // Alpha false für Performance
+    const ctx = canvas.getContext('2d', { alpha: false });
+
+    // Minimap / Searchbar
+    const minimapCanvas = document.getElementById('minimap-canvas');
+    const minimapCtx = minimapCanvas ? minimapCanvas.getContext('2d') : null;
+    const minimapViewport = document.getElementById('minimap-viewport');
+    const zoomDisplay = document.getElementById('zoom-level-display');
+    const searchInput = document.getElementById('map-search-input');
+    const searchResultsContainer = document.getElementById('search-results');
+    let mapBounds = { minX: 0, maxX: 0, minY: 0, maxY: 0, width: 0, height: 0 };
 
     // Konfiguration
     const HEX_SIZE = 80; // Muss mit Python übereinstimmen
@@ -19,22 +29,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let images = {}; // Image Cache
     let selectedHexId = null;
     
-    // Kamera / Viewport
-    let camera = { x: 0, y: 0, zoom: 0.5 }; // Start Zoom etwas weiter weg
+    
+    let camera = { x: 0, y: 0, zoom: 0.5 }; 
     let isDragging = false;
     let lastMouse = { x: 0, y: 0 };
 
-    // --- Initialisierung ---
+    // Initialisierung 
 
     function resize() {
         canvas.width = container.clientWidth;
         canvas.height = container.clientHeight;
+        setupMinimap(); 
         requestAnimationFrame(draw);
     }
     window.addEventListener('resize', resize);
-    resize();
-
-    // Daten laden
+    
+    setupSearch();
     fetch('/karte/map-data-json/')
         .then(res => res.json())
         .then(data => {
@@ -42,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
             preloadImages(hexagons);
         })
         .catch(err => console.error("Fehler beim Laden der Karte:", err));
+    resize();
 
     function preloadImages(hexList) {
         const uniqueUrls = [...new Set(hexList.map(h => h.image_url).filter(u => u))];
@@ -68,25 +79,67 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function finishLoading() {
-        if(loadingIndicator) loadingIndicator.style.display = 'none';
-        // Zentriere Kamera auf den ersten Sektor oder (0,0)
-        if (hexagons.length > 0) {
-            // Optional: Startposition setzen
-        }
+        if(loadingIndicator) 
+            loadingIndicator.style.display = 'none';
+        calculateMapBounds();
+        setupMinimap();
         requestAnimationFrame(draw);
     }
 
-    // --- Rendering ---
+    function calculateMapBounds() {
+        if (hexagons.length === 0) 
+            return;
+
+        mapBounds.minX = Math.min(...hexagons.map(h => h.x));
+        mapBounds.maxX = Math.max(...hexagons.map(h => h.x));
+        mapBounds.minY = Math.min(...hexagons.map(h => h.y));
+        mapBounds.maxY = Math.max(...hexagons.map(h => h.y));
+        mapBounds.width = mapBounds.maxX - mapBounds.minX;
+        mapBounds.height = mapBounds.maxY - mapBounds.minY;
+    }
+
+    function setupMinimap() {
+        if (!minimapCanvas || !minimapCtx) 
+            return;
+
+        const container = document.getElementById('minimap-container');
+        minimapCanvas.width = container.clientWidth;
+        minimapCanvas.height = container.clientHeight;
+        drawMinimapBackground();
+    }
+
+    function drawMinimapBackground() {
+        if (!minimapCtx || mapBounds.width === 0) 
+            return;
+        
+        minimapCtx.fillStyle = '#111';
+        minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+        
+        const scale = Math.min(minimapCanvas.width / mapBounds.width, minimapCanvas.height / mapBounds.height) * 0.95;
+        const offsetX = (minimapCanvas.width - mapBounds.width * scale) / 2;
+        const offsetY = (minimapCanvas.height - mapBounds.height * scale) / 2;
+
+        minimapCtx.fillStyle = '#555';
+        hexagons.forEach(hex => {
+            const mmX = (hex.x - mapBounds.minX) * scale + offsetX;
+            const mmY = (hex.y - mapBounds.minY) * scale + offsetY;
+            minimapCtx.fillRect(mmX, mmY, 1, 1); 
+        });
+    }
+
+    // Rendering
 
     function drawHexagonPath(ctx, x, y, r) {
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
-            // Pointy Top: Winkel bei 30°, 90°, 150°... (in Radiant)
+            // Winkel bei 30°, 90°, 150°
             const angle = (Math.PI / 3) * i + (Math.PI / 6);
             const px = x + r * Math.cos(angle);
             const py = y + r * Math.sin(angle);
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
+            if (i === 0) 
+                ctx.moveTo(px, py);
+            else 
+                ctx.lineTo(px, py);
         }
         ctx.closePath();
     }
@@ -99,47 +152,83 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.save();
         
         // Kamera Transformation
-        // Wir verschieben den Ursprung in die Mitte des Canvas
         ctx.translate(canvas.width / 2, canvas.height / 2);
         ctx.scale(camera.zoom, camera.zoom);
         ctx.translate(-camera.x, -camera.y);
-
-        // Viewport Berechnung für Culling (nur sichtbare zeichnen)
-        // Sichtbarer Bereich in Welt-Koordinaten berechnen
         const viewL = camera.x - (canvas.width / 2) / camera.zoom - HEX_SIZE;
         const viewR = camera.x + (canvas.width / 2) / camera.zoom + HEX_SIZE;
         const viewT = camera.y - (canvas.height / 2) / camera.zoom - HEX_SIZE;
         const viewB = camera.y + (canvas.height / 2) / camera.zoom + HEX_SIZE;
 
         hexagons.forEach(hex => {
-            // Culling: Überspringen wenn außerhalb des Bildschirms
-            if (hex.x < viewL || hex.x > viewR || hex.y < viewT || hex.y > viewB) return;
+            // Skip wenn außerhalb des Bildschirms
+            if (hex.x < viewL || hex.x > viewR || hex.y < viewT || hex.y > viewB) 
+                return;
 
-            // Bild zeichnen
+            // Image
             if (hex.image_url && images[hex.image_url]) {
-                const size = HEX_WIDTH; // Annahme: Bilder sind quadratisch/passend
-                // Zentriert zeichnen
+                const size = HEX_WIDTH; 
                 ctx.drawImage(images[hex.image_url], hex.x - size/2, hex.y - size/2, size, size);
-            } else {
-                // Fallback: Einfacher Kreis oder Hexagon wenn kein Bild
+            }
+            
+            // Immer Hexagon-Rahmen zeichnen
+            drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#333';
+            ctx.stroke();
+
+            // Indikator für Schiffe zeichnen (Gelbes Hexagon)
+            if (hex.has_ships) {
                 drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
-                ctx.lineWidth = 1 / camera.zoom; // Dünne Linie, skaliert mit Zoom
-                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#FFFF00';
                 ctx.stroke();
             }
 
             // Selektion Highlight
             if (hex.id == selectedHexId) {
                 drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
-                ctx.lineWidth = 5 / camera.zoom; // Linie bleibt gleich dick egal wie der Zoom ist
+                ctx.lineWidth = 5;
                 ctx.strokeStyle = '#00ff00';
                 ctx.stroke();
             }
         });
 
         ctx.restore();
+
+        updateMinimap();
     }
 
+    function updateMinimap() {
+        if (!minimapViewport || !minimapCanvas || mapBounds.width === 0) return;
+
+        // Skalierungsfaktor und Versatz für die Minimap berechnen
+        const scale = Math.min(minimapCanvas.width / mapBounds.width, minimapCanvas.height / mapBounds.height) * 0.95;
+        const offsetX = (minimapCanvas.width - mapBounds.width * scale) / 2;
+        const offsetY = (minimapCanvas.height - mapBounds.height * scale) / 2;
+
+        // Sichtbaren Bereich der Hauptkarte in Welt-Koordinaten
+        const viewWidth = canvas.width / camera.zoom;
+        const viewHeight = canvas.height / camera.zoom;
+        const viewLeft = camera.x - viewWidth / 2;
+        const viewTop = camera.y - viewHeight / 2;
+
+        // Position und Größe des Viewports auf der Minimap berechnen
+        const mmX = (viewLeft - mapBounds.minX) * scale + offsetX;
+        const mmY = (viewTop - mapBounds.minY) * scale + offsetY;
+        const mmW = viewWidth * scale;
+        const mmH = viewHeight * scale;
+
+        // CSS des Viewport-Rechtecks aktualisieren
+        minimapViewport.style.left = `${mmX}px`;
+        minimapViewport.style.top = `${mmY}px`;
+        minimapViewport.style.width = `${mmW}px`;
+        minimapViewport.style.height = `${mmH}px`;
+        
+        // Zoom-Anzeige aktualisieren
+        if (zoomDisplay) zoomDisplay.textContent = `Zoom: ${camera.zoom.toFixed(2)}x`;
+    }
+    
     // --- Interaktion ---
 
     container.addEventListener('mousedown', e => {
@@ -171,34 +260,29 @@ document.addEventListener('DOMContentLoaded', () => {
     container.addEventListener('wheel', e => {
         e.preventDefault();
         const zoomIntensity = 0.1;
-        const direction = Math.sign(e.deltaY); // 1 = raus, -1 = rein
-        const scaleFactor = Math.exp(direction * -zoomIntensity); // Negativ, damit Scrollen intuitiv ist
+        const direction = Math.sign(e.deltaY); 
+        const scaleFactor = Math.exp(direction * -zoomIntensity); 
         
         const newZoom = Math.max(0.05, Math.min(5.0, camera.zoom * scaleFactor));
-        
-        // Optional: Zoom zur Mausposition (etwas komplexer, hier vereinfachtes Zoom zur Mitte)
         camera.zoom = newZoom;
         
         requestAnimationFrame(draw);
     }, { passive: false });
 
     container.addEventListener('click', e => {
-        if (isDragging) return; // Nicht klicken wenn gezogen wurde
+        if (isDragging) 
+            return; 
 
-        // Mausposition im Canvas
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
-        // Umrechnung in Welt-Koordinaten
         const worldX = (mx - canvas.width / 2) / camera.zoom + camera.x;
         const worldY = (my - canvas.height / 2) / camera.zoom + camera.y;
 
-        // Nächstes Hexagon finden (Hit Detection)
-        // Bei 65k Elementen ist eine einfache Schleife in JS immer noch sehr schnell (<10ms)
         let closestHex = null;
         let minDistSq = Infinity;
-        const radiusSq = (HEX_SIZE) * (HEX_SIZE); // Klick-Radius
+        const radiusSq = (HEX_SIZE) * (HEX_SIZE); 
 
         for (let i = 0; i < hexagons.length; i++) {
             const h = hexagons[i];
@@ -216,9 +300,76 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedHexId = closestHex.id;
             requestAnimationFrame(draw);
             
-            // Event feuern wie im alten Code
             const event = new CustomEvent('sectorChanged', { detail: { sectorID: closestHex.id } });
             document.dispatchEvent(event);
         }
     });
+
+    function setupSearch() {
+        if (!searchInput || !searchResultsContainer) 
+            return;
+
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.toLowerCase().trim();
+            searchResultsContainer.innerHTML = '';
+
+            if (query.length < 2) 
+                return;
+
+            const results = [];
+            for (const hex of hexagons) {
+                if (hex.label.toLowerCase().includes(query)) {
+                    results.push({
+                        type: 'Sektor',
+                        text: `Sektor ${hex.label}`,
+                        hex: hex
+                    });
+                }
+                if (hex.planets) {
+                    for (const planet of hex.planets) {
+                        if (planet.name.toLowerCase().includes(query)) {
+                            results.push({
+                                type: 'Planet',
+                                text: `${planet.name} (Sektor ${hex.label})`,
+                                hex: hex
+                            });
+                        }
+                    }
+                }
+
+                if (results.length >= 5) 
+                    break; 
+            }
+
+            if (results.length > 0) {
+                results.forEach(result => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action py-1 px-2 small';
+                    item.textContent = result.text;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        camera.x = result.hex.x;
+                        camera.y = result.hex.y;
+                        camera.zoom = 1.2;
+                        selectedHexId = result.hex.id;
+                        
+                        searchInput.value = '';
+                        searchResultsContainer.innerHTML = '';
+                        requestAnimationFrame(draw);
+
+                        const event = new CustomEvent('sectorChanged', { detail: { sectorID: result.hex.id } });
+                        document.dispatchEvent(event);
+                    };
+                    searchResultsContainer.appendChild(item);
+                });
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchResultsContainer.contains(e.target) && e.target !== searchInput) {
+                searchResultsContainer.innerHTML = '';
+            }
+        });
+    }
 });

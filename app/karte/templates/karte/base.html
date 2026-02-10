@@ -33,12 +33,23 @@
 
     <div class="row g-4">
         <!-- Linke Seitenleiste -->
-        <div class="col-12 col-md-3 d-flex flex-column">
-            <!-- Buttons -->
-            <div class="d-grid gap-3 mb-4">
-                <button type="button" class="btn btn-primary">Save</button>
-                <button type="button" class="btn btn-secondary">Load</button>
-                <button type="button" class="btn btn-success" onclick="getSectorInfos()">Next Turn</button>
+        <div class="col-12 col-md-3 d-flex flex-column" style="position: relative;">
+            <!-- Navigation & Suche -->
+            <div class="mb-4">
+                <h6 class="text-center">Navigation & Suche</h6>
+                <div class="input-group mb-2">
+                    <input type="search" id="map-search-input" class="form-control" placeholder="Sektor/Planet suchen...">
+                </div>
+                <!-- Suchergebnisse werden hier dynamisch eingefügt -->
+                <div id="search-results" class="list-group" style="position: absolute; z-index: 1000; width: calc(100% - 1.5rem);"></div>
+
+                <h6 class="text-center mt-3">Minimap</h6>
+                <div id="minimap-container" style="position: relative; width: 100%; aspect-ratio: 1.5; background-color: #111; border: 1px solid #444; margin-top: 10px; overflow: hidden;">
+                    <canvas id="minimap-canvas" style="position: absolute; top: 0; left: 0;"></canvas>
+                    <!-- Der sichtbare Bereich der Hauptkarte -->
+                    <div id="minimap-viewport" style="position: absolute; border: 1px solid #00ff00; box-sizing: border-box; pointer-events: none;"></div>
+                </div>
+                <div id="zoom-level-display" class="text-center text-muted small mt-1">Zoom: 1.00x</div>
             </div>
 
             <!-- Flottenübersicht -->
