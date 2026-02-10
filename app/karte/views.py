@@ -58,6 +58,8 @@ def map_data_json(request):
     # Daten für JSON aufbereiten (Django Models sind nicht direkt serialisierbar)
     data = []
     for h in hexagons:
+        # Planetennamen für die Suche extrahieren
+        planets_data = [{'name': p.m_name} for p in h.get('planets', [])]
         data.append({
             'id': h['id'],
             'x': h['x'],
@@ -67,6 +69,7 @@ def map_data_json(request):
             'rotation': h['rotation'],
             'has_ships': h['has_ships'],
             'ship_count': h['ship_count'],
+            'planets': planets_data,
         })
 
     return JsonResponse({'hexagons': data})
