@@ -2,7 +2,7 @@
     <h5>Planetendetails</h5>
     {% for planet in planets %}
         <div class="planet-box mb-3 p-2 border rounded bg-light">
-            <strong>{{ planet.m_name }}</strong> <span class="text-muted">({{ planet.m_klasse }} {{ planet.m_typ }})</span><br>
+            <strong>{{ planet.m_name }}</strong> <span class="text-muted">({{ planet.m_klasse.m_klasse }} {{ planet.m_klasse.m_typ }})</span><br>
             <small>Besitzer: {{ planet.m_besitzer }}</small><br>
             <small>Heimatplanet: {% if planet.m_heimatplanet %}Ja{% else %}Nein{% endif %}</small><br>
             <small>Bevölkerung: {{ planet.m_bevoelkerung }}</small><br>

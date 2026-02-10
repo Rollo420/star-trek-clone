@@ -1,3 +1,5 @@
+import { ImperiumModule } from "./fleetCards.js";
+
 document.addEventListener('sectorChanged', function (e) {
     const sectorID = e.detail.sectorID;
     updateFleetDetails(252);
@@ -5,24 +7,38 @@ document.addEventListener('sectorChanged', function (e) {
 
 async function updateFleetDetails(id) {
     const container = document.getElementById('fleet-info');
+    if (!container) {
+        console.error("Fehler: Container 'fleet-info' nicht im HTML gefunden!");
+        return;
+    }
+
+    // Feedback für den User
+    container.innerHTML = '<p>Lade Flottendaten...</p>';
 
     try {
-        //fetch fleet infos from django backend 
         const response = await fetch(`/api/schiffe/${id}/`);
-        console.log(response);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
+        if (!response.ok) throw new Error(`HTTP Fehler: ${response.status}`);
+
         const data = await response.json();
-        console.log('Fleet data:', data);
-        
-        // Hier kannst du die Daten im Container anzeigen
-        container.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-    }
-    catch (error) {
+
+        // WICHTIG: Wenn das Backend ein leeres Objekt {} schickt, zeige das an
+        if (Object.keys(data).length === 0 || data.message === 'no ships') {
+            container.innerHTML = '<p>Keine Schiffe in diesem Sektor.</p>';
+            return;
+        }
+
+        try{
+
+            container.innerHTML = ImperiumModule(data);
+
+        }
+        catch (error)
+        {
+            container.innerHTML = '<p style="color: red;">Module konnte nciht geladen werden.</p>'  
+        }
+
+    } catch (error) {
         console.error('Fleet-Info Error: ', error);
-        container.innerHTML = '<p>Fehler beim Laden der Flottendaten</p>';
+        container.innerHTML = '<p style="color: red;">Fehler beim Laden.</p>';
     }
 }
