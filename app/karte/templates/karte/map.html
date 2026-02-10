@@ -2,14 +2,15 @@
 {% load static %}
 
 {% block map %}
-<div id="hex-map-scroll" style="flex: 1; overflow:hidden; width:100%; height:600px;">
-    <svg id="hex-map" style="width:{{ grid_width }}px; height:{{ grid_height }}px;" viewBox="0 0 {{ grid_width }} {{ grid_height }}">
-        <image x="0" y="0" width="{{ grid_width }}" height="{{ grid_height }}" xlink:href="{% static 'img/BilderGalaxy/Hintergrund.jpg' %}" href="{% static 'img/BilderGalaxy/Hintergrund.jpg' %}" preserveAspectRatio="xMidYMid slice" />
-        {% for hex in hexagons %}
-            {% include "karte/hexagon.html" with hex=hex %}
-        {% endfor %}
-    </svg>
+<!-- Container für das Canvas -->
+<div id="hex-map-container" style="width: 100%; height: 600px; overflow: hidden; position: relative; background: #000; cursor: grab;">
+    <canvas id="hex-map-canvas" style="display: block; width: 100%; height: 100%;"></canvas>
+    <!-- Lade-Indikator (optional) -->
+    <div id="map-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; pointer-events: none;">
+        Karte wird geladen...
+    </div>
 </div>
+
 <script src="{% static 'js/map-logic.js' %}"></script>
 <script>
 // Scroll zur Mitte des Gitters

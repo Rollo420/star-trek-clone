@@ -1,3 +1,4 @@
+import random
 from django.db import models
 
 class cls_diplomatieabkommen(models.TextChoices):
@@ -13,10 +14,30 @@ class cls_diplomatieabkommen(models.TextChoices):
 class cls_imperium(models.Model):
     m_name = models.CharField(max_length=100, unique=True)  # name of the group
     m_rasse = models.ForeignKey('cls_rassen', on_delete=models.CASCADE, blank=True, null=True, related_name='rasse')
-    
-    
+    m_color = models.CharField(max_length=7, unique=True)  # Hex color code
+
     def __str__(self):
         return self.m_name
+
+    def save(self, *args, **kwargs):
+        # Wenn das Objekt noch keine Farbe hat (neu erstellt), generiere eine zufällige unikate Farbe
+        if not self.m_color:
+            self.m_color = cls_imperium.generate_unique_random_color()
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def generate_unique_random_color():
+        """
+        Generiert eine zufällige Hex-Farbe, die noch nicht vergeben ist.
+        Wiederholt den Vorgang, bis eine unikate Farbe gefunden wurde.
+        """
+        used_colors = set(cls_imperium.objects.values_list('m_color', flat=True))
+
+        while True:
+            # Zufällige Farbe im Format #RRGGBB
+            color = '#{:06x}'.format(random.randint(0, 0xFFFFFF))
+            if color not in used_colors:
+                return color
 
 
 class cls_rassen(models.Model):
