@@ -2,7 +2,7 @@ import { ImperiumModule } from "./fleetCards.js";
 
 document.addEventListener('sectorChanged', function (e) {
     const sectorID = e.detail.sectorID;
-    updateFleetDetails(252);
+    updateFleetDetails(sectorID);
 })
 
 async function updateFleetDetails(id) {
