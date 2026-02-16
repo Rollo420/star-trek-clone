@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Even with no hexagons, hide loading and draw
             if(loadingIndicator) 
                 loadingIndicator.style.display = 'none';
-            return;
+            return;}
         
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         
