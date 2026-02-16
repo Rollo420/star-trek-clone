@@ -37,7 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialisierung 
 
     function constrainCamera() {
-        if (mapBounds.width <= 0 || mapBounds.height <= 0) return;
+        if (mapBounds.width <= 0 || mapBounds.height <= 0) 
+            return;
 
         const viewW = canvas.width / camera.zoom;
         const viewH = canvas.height / camera.zoom;
@@ -360,13 +361,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const results = [];
             for (const hex of hexagons) {
-                if (hex.label.toLowerCase().includes(query)) {
+                // Suche nach Sektor ID
+                if (hex.id.toString().includes(query)) {
                     results.push({
                         type: 'Sektor',
-                        text: `Sektor ${hex.label}`,
+                        text: `Sektor ${hex.id}`,
                         hex: hex
                     });
                 }
+
+                // Suche nach Schiffen
+                if (hex.ship_names) {
+                    for (const shipName of hex.ship_names) {
+                        if (shipName.toLowerCase().includes(query)) {
+                            results.push({
+                                type: 'Schiff',
+                                text: `${shipName} (Sektor ${hex.id})`,
+                                hex: hex
+                            });
+                        }
+                    }
+                }
+
                 if (hex.planets) {
                     for (const planet of hex.planets) {
                         if (planet.name.toLowerCase().includes(query)) {
@@ -384,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (results.length > 0) {
-                results.forEach(result => {
+                for (const result of results.slice(0, 5)) {
                     const item = document.createElement('a');
                     item.href = '#';
                     item.className = 'list-group-item list-group-item-action py-1 px-2 small';
@@ -405,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.dispatchEvent(event);
                     };
                     searchResultsContainer.appendChild(item);
-                });
+                }
             }
         });
 

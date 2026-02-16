@@ -38,23 +38,21 @@
             <div class="mb-4">
                 <h6 class="text-center">Navigation & Suche</h6>
                 <div class="input-group mb-2">
-                    <input type="search" id="map-search-input" class="form-control" placeholder="Sektor/Planet suchen...">
+                    <input type="search" id="map-search-input" class="form-control" placeholder="Sektor (ID), Planet oder Schiff...">
                 </div>
-                <!-- Suchergebnisse werden hier dynamisch eingefügt -->
                 <div id="search-results" class="list-group" style="position: absolute; z-index: 1000; width: calc(100% - 1.5rem);"></div>
 
                 <h6 class="text-center mt-3">Minimap</h6>
                 <div id="minimap-container" style="position: relative; width: 100%; aspect-ratio: 1.5; background-color: #111; border: 1px solid #444; margin-top: 10px; overflow: hidden;">
                     <canvas id="minimap-canvas" style="position: absolute; top: 0; left: 0;"></canvas>
-                    <!-- Der sichtbare Bereich der Hauptkarte -->
                     <div id="minimap-viewport" style="position: absolute; border: 1px solid #00ff00; box-sizing: border-box; pointer-events: none;"></div>
                 </div>
                 <div id="zoom-level-display" class="text-center text-muted small mt-1">Zoom: 1.00x</div>
             </div>
 
-            <!-- Flottenübersicht -->
+            <!-- Sektorübersicht -->
             <div class="row g-3 mb-4">
-                <div class="col-6">
+                <!--<div class="col-6">
                     <div class="styled-box d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="text-center mb-2">Own Fleet</h6>
@@ -71,25 +69,6 @@
                     </div>
                 </div>
                 <div class="col-6">
-                    <div class="styled-box d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-center mb-2">Enemy Fleet</h6>
-                            <ul class="list-unstyled mb-0 small">
-                                <li>1x Bird of Prey</li>
-                                <li>(Heavy Cruiser)</li>
-                                <li>- Blood Claw -</li>
-                            </ul>
-                        </div>
-                        <div class="fight-points">
-                            2
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Aktuelles Schiff & Waffensysteme -->
-            <div class="row g-3">
-                <div class="col-6">
                     <h6 class="text-center">Current Ship</h6>
                     <div class="styled-box d-flex justify-content-center align-items-center">
                         <p class="text-muted mb-0">Diagramm</p>
@@ -103,26 +82,26 @@
                             <li>8x Photone Torpedo Launcher</li>
                         </ul>
                     </div>
-                </div>
+                </div>-->
             </div>
         </div>
 
         <!-- Hauptbereich: Map und Details -->
-       
             <div class="col-12 col-md-9 d-flex flex-column">
                 <div class="wireframe-outline mb-4">
                     {% block map %}
                         Hauptkarte / Grafik
                     {% endblock %}
                 </div>
-            </div> 
-       
-            <!-- Navigations-Tabs/Buttons -->
+            </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Navigations-Tabs/Buttons -->
             <div class="d-flex justify-content-between mb-4 btn-group-footer button-menu">
-                <button type="button" class="btn btn-dark w-100 mx-1" onclick="toggleButtonMenu(this, 'planet-detail-bottom')">Map</button>
-                <button type="button" class="btn btn-dark w-100 mx-1" onclick="toggleButtonMenu(this, 'system-info')">System</button>
+                <button type="button" class="btn btn-dark w-100 mx-1" onclick="toggleButtonMenu(this, 'planet-detail-bottom')">Sektor</button>
                 <button type="button" class="btn btn-dark w-100 mx-1" onclick="toggleButtonMenu(this, 'fleet-info')">Fleet</button>
-                <button type="button" class="btn btn-dark w-100 mx-1" onclick="toggleButtonMenu(this, 'market-info')">Market</button>
+                <button type="button" class="btn btn-dark w-100 mx-1" onclick="toggleButtonMenu(this, 'market-info')">Diplomatie</button>
             </div>
             
             <!-- Schiffsdarstellung & Planetendetails unten -->
@@ -131,17 +110,12 @@
                 {% include "karte/sector_detail.html" with sektor=None planets=None ships=None image_url=None subraumenergielevel=None %}
             </div>
             
-            <!-- System Info -->
-            <div id="system-info" class="styled-box text-start mb-4 map-info" style="display: none;">
-                <p class="mb-0">Systeminformationen</p>
-            </div>
-            
             <!-- Fleet Info -->
             <div id="fleet-info" class="styled-box text-start mb-4 map-info" style="display: none;">
                 <p class="mb-0">Flotteninformationen</p>
             </div>
 
-            <!-- Market Info -->
+            <!-- Diplomatie Info -->
             <div id="market-info" class="styled-box text-start mb-4 map-info" style="display: none;">
                 <p class="mb-0">Marktinformationen</p>
             </div>
@@ -150,7 +124,6 @@
             <div class="d-flex justify-content-end">
                 <small class="text-muted">Current Date + 200y</small>
             </div>
-        </div>
     </div>
 </div>
 

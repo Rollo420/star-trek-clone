@@ -18,27 +18,14 @@ def index(request):
     return render(request, 'karte/base.html')
 
 def map_view(request):
-    hex_size = 80
-    gap = 8
-
-    # Load hex map - ship checking and logging is done in util.py
-    hexagons, grid_width, grid_height = cls_map_randerer.load_hex_map_from_db(hex_size, gap_px=gap)
-
-    # Drehung um 90 Grad, um das Hex-Gitter zu korrigieren
+    """
+    Rendert nur noch das HTML-Gerüst. Die eigentlichen Daten werden asynchron
+    über map_data_json nachgeladen. Das beschleunigt den Seitenaufbau massiv.
+    """
+    hexagons = []
+    grid_width = 0
+    grid_height = 0
     rotation_90 = True
-
-    # Count sectors with ships from the loaded data
-    sectors_with_ships = [h for h in hexagons if h.get('has_ships', False)]
-    
-    # Log detailed ship info for sectors with ships (weniger verbose als vorher)
-    if sectors_with_ships:
-        logger.info(f"Anzahl der Sektoren mit Schiffen: {len(sectors_with_ships)}")
-        for hex in sectors_with_ships[:10]:  # Nur die ersten 10 für Lesbarkeit
-            logger.info(
-                f"Sektor ID {hex['id']} | Position {hex['label']} | Schiffe: {hex['ship_count']}"
-            )
-        if len(sectors_with_ships) > 10:
-            logger.info(f"... und weitere {len(sectors_with_ships) - 10} Sektoren mit Schiffen")
 
     return render(request, "karte/map.html", {
         "hexagons": hexagons,
@@ -69,6 +56,7 @@ def map_data_json(request):
             'rotation': h['rotation'],
             'has_ships': h['has_ships'],
             'ship_count': h['ship_count'],
+            'ship_names': h.get('ship_names', []),
             'planets': planets_data,
         })
 
