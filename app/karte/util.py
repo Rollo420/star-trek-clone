@@ -70,21 +70,23 @@ class cls_map_randerer:
         
         planeten_map = cls.get_sektor_planets()
         
-        # Zähler für Logging
         sectors_with_ships = 0
         sectors_without_ships = 0
         total_ships = 0
+        all_ships = cls_schiffe.objects.filter(m_istPos__isnull=False).values('m_istPos', 'm_name')
+        ships_lookup = {}
 
-        for sektor in cls_sektor.objects.all():
+        for ship in all_ships:
+            sid = ship['m_istPos']
+            if sid not in ships_lookup:
+                ships_lookup[sid] = []
+            ships_lookup[sid].append(ship['m_name'])
+
+        for sektor in cls_sektor.objects.select_related('m_sektorobjekt').all():
             q = sektor.m_cx
             r = sektor.m_cz
-
-            # Verschiebung der Koordinaten, um das Zentrum zu berücksichtigen
-            # Hier wird das zentrale Hexagon auf (0,0) positioniert
             q_shifted = q - center_q
             r_shifted = r - center_r
-
-            # Korrigierte X- und Y-Berechnungen basierend auf den verschobenen Koordinaten
             x = scale * (math.sqrt(3) * r_shifted + math.sqrt(3)/2 * q_shifted)
             y = scale * (3/2 * q_shifted)
 
@@ -94,8 +96,9 @@ class cls_map_randerer:
             image_data = cls.get_image_data(sektor)
             
             # Prüfe ob Schiffe in diesem Sektor vorhanden sind
-            ships = cls_schiffe.objects.filter(m_istPos=sektor)
-            ship_count = ships.count()
+            # Statt DB-Query nutzen wir jetzt das Lookup-Dictionary (Memory ist viel schneller als DB)
+            ship_names = ships_lookup.get(sektor.id, [])
+            ship_count = len(ship_names)
             has_ships = ship_count > 0
             
             if has_ships:
@@ -114,6 +117,7 @@ class cls_map_randerer:
                 "rotation": image_data['rotation'],
                 "has_ships": has_ships,
                 "ship_count": ship_count,
+                "ship_names": ship_names,
             })
 
         for hex in hexagons:
@@ -127,4 +131,3 @@ class cls_map_randerer:
         logger.info(f"Map geladen: {len(hexagons)} Sektoren | Mit Schiffen: {sectors_with_ships} | Ohne Schiffe: {sectors_without_ships} | Gesamtschiffe: {total_ships}")
         
         return hexagons, grid_width, grid_height
-

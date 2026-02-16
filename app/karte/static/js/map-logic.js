@@ -59,12 +59,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialisierung 
 
+    function constrainCamera() {
+        if (mapBounds.width <= 0 || mapBounds.height <= 0) 
+            return;
+
+        const viewW = canvas.width / camera.zoom;
+        const viewH = canvas.height / camera.zoom;
+
+        if (viewW >= mapBounds.width) {
+            camera.x = mapBounds.minX + mapBounds.width / 2;
+        } 
+        else 
+            {
+            const minCamX = mapBounds.minX + viewW / 2;
+            const maxCamX = mapBounds.maxX - viewW / 2;
+            camera.x = Math.max(minCamX, Math.min(maxCamX, camera.x));
+        }
+
+        if (viewH >= mapBounds.height) {
+            camera.y = mapBounds.minY + mapBounds.height / 2;
+        } else {
+            const minCamY = mapBounds.minY + viewH / 2;
+            const maxCamY = mapBounds.maxY - viewH / 2;
+            camera.y = Math.max(minCamY, Math.min(maxCamY, camera.y));
+        }
+    }
+
     function resize() {
         if (canvas && container) {
             canvas.width = container.clientWidth;
             canvas.height = container.clientHeight;
         }
         setupMinimap(); 
+        constrainCamera();
         requestAnimationFrame(draw);
     }
     window.addEventListener('resize', resize);
@@ -112,10 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingIndicator.style.display = 'none';
         calculateMapBounds();
         setupMinimap();
-        // Initial draw after a short delay to ensure DOM is ready
-        setTimeout(() => {
-            requestAnimationFrame(draw);
-        }, 100);
+        constrainCamera();
+        requestAnimationFrame(draw);
     }
 
     function calculateMapBounds() {
@@ -124,12 +149,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if(loadingIndicator) 
                 loadingIndicator.style.display = 'none';
             return;
+        
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        
+        for (const h of hexagons) {
+            if (h.x < minX) minX = h.x;
+            if (h.x > maxX) maxX = h.x;
+            if (h.y < minY) minY = h.y;
+            if (h.y > maxY) maxY = h.y;
         }
 
-        mapBounds.minX = Math.min(...hexagons.map(h => h.x));
-        mapBounds.maxX = Math.max(...hexagons.map(h => h.x));
-        mapBounds.minY = Math.min(...hexagons.map(h => h.y));
-        mapBounds.maxY = Math.max(...hexagons.map(h => h.y));
+        // Padding hinzufügen (halbe Breite/Höhe des Hexagons), damit auch der Rand des Hexagons zur "Wand" gehört
+        const padX = HEX_WIDTH / 2;
+        const padY = HEX_HEIGHT / 2;
+
+        mapBounds.minX = minX - padX;
+        mapBounds.maxX = maxX + padX;
+        mapBounds.minY = minY - padY;
+        mapBounds.maxY = maxY + padY;
         mapBounds.width = mapBounds.maxX - mapBounds.minX;
         mapBounds.height = mapBounds.maxY - mapBounds.minY;
     }
@@ -291,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
             camera.x -= dx / camera.zoom;
             camera.y -= dy / camera.zoom;
             
+            constrainCamera();
             requestAnimationFrame(draw);
         }
     });
@@ -303,6 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const newZoom = Math.max(0.05, Math.min(5.0, camera.zoom * scaleFactor));
         camera.zoom = newZoom;
+        constrainCamera();
         
         requestAnimationFrame(draw);
     }, { passive: false });
@@ -356,13 +395,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const results = [];
             for (const hex of hexagons) {
-                if (hex.label.toLowerCase().includes(query)) {
+                // Suche nach Sektor ID
+                if (hex.id.toString().includes(query)) {
                     results.push({
                         type: 'Sektor',
-                        text: `Sektor ${hex.label}`,
+                        text: `Sektor ${hex.id}`,
                         hex: hex
                     });
                 }
+
+                // Suche nach Schiffen
+                if (hex.ship_names) {
+                    for (const shipName of hex.ship_names) {
+                        if (shipName.toLowerCase().includes(query)) {
+                            results.push({
+                                type: 'Schiff',
+                                text: `${shipName} (Sektor ${hex.id})`,
+                                hex: hex
+                            });
+                        }
+                    }
+                }
+
                 if (hex.planets) {
                     for (const planet of hex.planets) {
                         if (planet.name.toLowerCase().includes(query)) {
@@ -380,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (results.length > 0) {
-                results.forEach(result => {
+                for (const result of results.slice(0, 5)) {
                     const item = document.createElement('a');
                     item.href = '#';
                     item.className = 'list-group-item list-group-item-action py-1 px-2 small';
@@ -394,13 +448,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         searchInput.value = '';
                         searchResultsContainer.innerHTML = '';
+                        constrainCamera();
                         requestAnimationFrame(draw);
 
                         const event = new CustomEvent('sectorChanged', { detail: { sectorID: result.hex.id } });
                         document.dispatchEvent(event);
                     };
                     searchResultsContainer.appendChild(item);
-                });
+                }
             }
         });
 

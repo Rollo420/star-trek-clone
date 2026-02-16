@@ -1,3 +1,5 @@
+const mapDetailsCache = {};
+
 document.addEventListener('sectorChanged', function (e) {
     const sectorID = e.detail.sectorID;
     updateMapDetails(sectorID);
@@ -5,6 +7,14 @@ document.addEventListener('sectorChanged', function (e) {
 
 async function updateMapDetails(id) {
     
+    if (mapDetailsCache[id]) {
+        const planetBottom = document.getElementById('planet-detail-bottom');
+        if (planetBottom) {
+            planetBottom.innerHTML = mapDetailsCache[id];
+        }
+        return;
+    }
+
     try {
         //fetch Map infos from django backend 
         // Lade Sektor-Details per AJAX und zeige im unteren Bereich
@@ -12,10 +22,10 @@ async function updateMapDetails(id) {
             .then(r => r.ok ? r.json() : null)
             .then(data => {
                 if (data) {
+                    mapDetailsCache[id] = data.html;
                     const planetBottom = document.getElementById('planet-detail-bottom');
                     if (planetBottom) {
                         planetBottom.innerHTML = data.html;
-                        console.log(data.html);
                     }
                 } else {
                     console.error('Fehler beim Laden der Sektordaten.');
@@ -28,4 +38,3 @@ async function updateMapDetails(id) {
         console.error('Map-Info Error: ', error);
     }
 }
-
