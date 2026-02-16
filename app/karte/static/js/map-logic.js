@@ -1,15 +1,38 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded - Starting map initialization');
+    
     const canvas = document.getElementById('hex-map-canvas');
-    if (!canvas) 
-        return; 
-
     const container = document.getElementById('hex-map-container');
+    
+    console.log('Canvas elements found:', {
+        canvas: !!canvas,
+        container: !!container
+    });
+    
+    if (!canvas || !container) {
+        console.error('Canvas or container not found');
+        return;
+    }
+    
     const loadingIndicator = document.getElementById('map-loading');
     const ctx = canvas.getContext('2d', { alpha: false });
 
     // Minimap / Searchbar
     const minimapCanvas = document.getElementById('minimap-canvas');
     const minimapCtx = minimapCanvas ? minimapCanvas.getContext('2d') : null;
+    
+    console.log('Minimap canvas found:', !!minimapCanvas);
+    
+    if (minimapCanvas) {
+        // Set canvas dimensions to match container
+        const minimapContainer = document.getElementById('minimap-container');
+        if (minimapContainer) {
+            minimapCanvas.width = minimapContainer.clientWidth;
+            minimapCanvas.height = minimapContainer.clientHeight;
+            console.log('Minimap canvas sized:', minimapCanvas.width, 'x', minimapCanvas.height);
+        }
+    }
+    
     const minimapViewport = document.getElementById('minimap-viewport');
     const zoomDisplay = document.getElementById('zoom-level-display');
     const searchInput = document.getElementById('map-search-input');
@@ -37,8 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialisierung 
 
     function resize() {
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
+        if (canvas && container) {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
         setupMinimap(); 
         requestAnimationFrame(draw);
     }
@@ -52,7 +77,11 @@ document.addEventListener('DOMContentLoaded', () => {
             preloadImages(hexagons);
         })
         .catch(err => console.error("Fehler beim Laden der Karte:", err));
-    resize();
+    
+    // Initial resize and draw after DOM is fully ready
+    setTimeout(() => {
+        resize();
+    }, 200);
 
     function preloadImages(hexList) {
         const uniqueUrls = [...new Set(hexList.map(h => h.image_url).filter(u => u))];
@@ -83,12 +112,19 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingIndicator.style.display = 'none';
         calculateMapBounds();
         setupMinimap();
-        requestAnimationFrame(draw);
+        // Initial draw after a short delay to ensure DOM is ready
+        setTimeout(() => {
+            requestAnimationFrame(draw);
+        }, 100);
     }
 
     function calculateMapBounds() {
-        if (hexagons.length === 0) 
+        if (hexagons.length === 0) {
+            // Even with no hexagons, hide loading and draw
+            if(loadingIndicator) 
+                loadingIndicator.style.display = 'none';
             return;
+        }
 
         mapBounds.minX = Math.min(...hexagons.map(h => h.x));
         mapBounds.maxX = Math.max(...hexagons.map(h => h.x));
@@ -103,8 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
 
         const container = document.getElementById('minimap-container');
-        minimapCanvas.width = container.clientWidth;
-        minimapCanvas.height = container.clientHeight;
+        if (container) {
+            minimapCanvas.width = container.clientWidth;
+            minimapCanvas.height = container.clientHeight;
+        }
         drawMinimapBackground();
     }
 
@@ -226,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
         minimapViewport.style.height = `${mmH}px`;
         
         // Zoom-Anzeige aktualisieren
-        if (zoomDisplay) zoomDisplay.textContent = `Zoom: ${camera.zoom.toFixed(2)}x`;
+        if (zoomDisplay) zoomDisplay.textContent = `ZOOM: ${camera.zoom.toFixed(2)}x`;
     }
     
     // --- Interaktion ---

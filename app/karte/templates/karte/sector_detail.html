@@ -128,22 +128,4 @@ This will be rendered as HTML and injected into the page via AJAX.
     </div>
     {% endif %}
 
-    {% if ships %}
-    <div class="ship-list">
-        <h6>Schiffe ({{ ships|length }})</h6>
-        <ul>
-            {% for ship in ships %}
-            <li>
-                <img src="{% static 'img/Ships/'|add:ship.m_imgname|add:'.png' %}" alt="Schiff Bild" class="ship-image"/>
-                <strong>{{ ship.m_name }}</strong> <span class="text-muted">[{{ ship.m_klasse.m_name }}]</span>
-                {% if ship.m_imperium %}
-                <ul>
-                    <li>Imperium: {{ ship.m_imperium.m_name }}</li>
-                </ul>
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
-    </div>
-    {% endif %}
-</div>
+   </div>

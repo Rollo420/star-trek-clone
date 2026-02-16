@@ -99,7 +99,7 @@ function ShipEntry(ship) {
     const shield = ship.components.schilde?.m_energie || 0;
 
     return `
-        <div class="ship-unit" style="margin: 5px 0 5px 20px; padding: 10px; background: rgba(0, 255, 65, 0.05); border: 1px solid rgba(0, 255, 65, 0.3); position: relative;">
+        <div data-ship='${JSON.stringify(ship).replace(/'/g, "&apos;")}' class="ship-unit" style="margin: 5px 0 5px 20px; padding: 10px; background: rgba(0, 255, 65, 0.05); border: 1px solid rgba(0, 255, 65, 0.3); position: relative; cursor: pointer;" onclick="this.dispatchEvent(new CustomEvent('shipClick', {detail: JSON.parse(this.getAttribute('data-ship')), bubbles: true}))">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="color: #fff; font-weight: bold; font-size: 0.9em;">ID_${ship.id}: ${ship.name.toUpperCase()}</span>
                 <span style="color: #00ff41; font-size: 0.7em;">[ STATUS: ACTIVE ]</span>
