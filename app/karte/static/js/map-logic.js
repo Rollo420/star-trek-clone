@@ -21,17 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const minimapCanvas = document.getElementById('minimap-canvas');
     const minimapCtx = minimapCanvas ? minimapCanvas.getContext('2d') : null;
     
-    console.log('Minimap canvas found:', !!minimapCanvas);
-    
-    if (minimapCanvas) {
-        // Set canvas dimensions to match container
-        const minimapContainer = document.getElementById('minimap-container');
-        if (minimapContainer) {
-            minimapCanvas.width = minimapContainer.clientWidth;
-            minimapCanvas.height = minimapContainer.clientHeight;
-            console.log('Minimap canvas sized:', minimapCanvas.width, 'x', minimapCanvas.height);
-        }
-    }
     
     const minimapViewport = document.getElementById('minimap-viewport');
     const zoomDisplay = document.getElementById('zoom-level-display');
@@ -40,12 +29,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapBounds = { minX: 0, maxX: 0, minY: 0, maxY: 0, width: 0, height: 0 };
 
     // Konfiguration
-    const HEX_SIZE = 80; // Muss mit Python übereinstimmen
-    // Breite eines Hexagons (flache Seite oben/unten bei Pointy Top oder umgekehrt, hier basierend auf Python Logik)
-    // Python nutzt: x = scale * (sqrt(3)*r + sqrt(3)/2*q), y = scale * (3/2*q)
-    // Das entspricht Pointy-Top Orientierung.
+    const HEX_SIZE = 80; 
     const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE; 
     const HEX_HEIGHT = 2 * HEX_SIZE;
+
+    // Performance: einmalige Eckenberechnung
+    const HEX_CORNERS = [];
+    for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i + (Math.PI / 6);
+        HEX_CORNERS.push({ x: Math.cos(angle), y: Math.sin(angle) });
+    }
 
     // State
     let hexagons = [];
@@ -145,10 +138,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function calculateMapBounds() {
         if (hexagons.length === 0) {
-            // Even with no hexagons, hide loading and draw
             if(loadingIndicator) 
                 loadingIndicator.style.display = 'none';
-            return;}
+            return;
+        }
         
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         
@@ -159,7 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (h.y > maxY) maxY = h.y;
         }
 
-        // Padding hinzufügen (halbe Breite/Höhe des Hexagons), damit auch der Rand des Hexagons zur "Wand" gehört
         const padX = HEX_WIDTH / 2;
         const padY = HEX_HEIGHT / 2;
 
@@ -174,9 +166,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupMinimap() {
         if (!minimapCanvas || !minimapCtx) 
             return;
+        
+        const minimapContainer = minimapCanvas.parentElement;
 
-        const container = document.getElementById('minimap-container');
-        if (container) {
+        if (mapBounds.width > 0 && mapBounds.height > 0 && minimapContainer) {
+            const width = minimapContainer.clientWidth;
+            const ratio = mapBounds.height / mapBounds.width;
+            const newHeight = width * ratio;
+            
+            minimapContainer.style.height = `${newHeight}px`;
+            minimapContainer.style.aspectRatio = 'auto';
+            
+            minimapCanvas.width = width;
+            minimapCanvas.height = newHeight;
+        } else {
             minimapCanvas.width = container.clientWidth;
             minimapCanvas.height = container.clientHeight;
         }
@@ -191,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         minimapCtx.fillStyle = '#111';
         minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
         
-        const scale = Math.min(minimapCanvas.width / mapBounds.width, minimapCanvas.height / mapBounds.height) * 0.95;
+        const scale = Math.min(minimapCanvas.width / mapBounds.width, minimapCanvas.height / mapBounds.height);
         const offsetX = (minimapCanvas.width - mapBounds.width * scale) / 2;
         const offsetY = (minimapCanvas.height - mapBounds.height * scale) / 2;
 
@@ -199,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hexagons.forEach(hex => {
             const mmX = (hex.x - mapBounds.minX) * scale + offsetX;
             const mmY = (hex.y - mapBounds.minY) * scale + offsetY;
-            minimapCtx.fillRect(mmX, mmY, 1, 1); 
+            minimapCtx.fillRect(mmX, mmY, 2, 2); 
         });
     }
 
@@ -207,15 +210,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawHexagonPath(ctx, x, y, r) {
         ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            // Winkel bei 30°, 90°, 150°
-            const angle = (Math.PI / 3) * i + (Math.PI / 6);
-            const px = x + r * Math.cos(angle);
-            const py = y + r * Math.sin(angle);
-            if (i === 0) 
-                ctx.moveTo(px, py);
-            else 
-                ctx.lineTo(px, py);
+        ctx.moveTo(x + r * HEX_CORNERS[0].x, y + r * HEX_CORNERS[0].y);
+        for (let i = 1; i < 6; i++) {
+            ctx.lineTo(x + r * HEX_CORNERS[i].x, y + r * HEX_CORNERS[i].y);
         }
         ctx.closePath();
     }
@@ -279,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!minimapViewport || !minimapCanvas || mapBounds.width === 0) return;
 
         // Skalierungsfaktor und Versatz für die Minimap berechnen
-        const scale = Math.min(minimapCanvas.width / mapBounds.width, minimapCanvas.height / mapBounds.height) * 0.95;
+        const scale = Math.min(minimapCanvas.width / mapBounds.width, minimapCanvas.height / mapBounds.height);
         const offsetX = (minimapCanvas.width - mapBounds.width * scale) / 2;
         const offsetY = (minimapCanvas.height - mapBounds.height * scale) / 2;
 
