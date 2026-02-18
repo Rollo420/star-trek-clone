@@ -180,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
             minimapCanvas.width = container.clientWidth;
             minimapCanvas.height = container.clientHeight;
         }
+        
         drawMinimapBackground();
     }
 
