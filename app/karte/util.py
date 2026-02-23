@@ -3,6 +3,7 @@ import math
 from .models import cls_sektor
 from planet.models import cls_planet
 from schiffe.models import cls_schiffe
+from imperium.models import cls_ImperiumScan
 from django.templatetags.static import static
 
 # Zentrales Logging - funktioniert automatisch mit Django!
@@ -82,6 +83,14 @@ class cls_map_randerer:
                 ships_lookup[sid] = []
             ships_lookup[sid].append(ship['m_name'])
 
+        # Imperium Scans laden für Farben
+        all_scans = cls_ImperiumScan.objects.select_related('m_imperium').all()
+        imperium_colors = {}
+        for scan in all_scans:
+            sid = scan.m_sektor_id
+            if sid not in imperium_colors:
+                imperium_colors[sid] = scan.m_imperium.m_color
+
         for sektor in cls_sektor.objects.select_related('m_sektorobjekt').all():
             q = sektor.m_cx
             r = sektor.m_cz
@@ -118,6 +127,7 @@ class cls_map_randerer:
                 "has_ships": has_ships,
                 "ship_count": ship_count,
                 "ship_names": ship_names,
+                "imperium_color": imperium_colors.get(sektor.id),
             })
 
         for hex in hexagons:

@@ -58,6 +58,7 @@ def map_data_json(request):
             'ship_count': h['ship_count'],
             'ship_names': h.get('ship_names', []),
             'planets': planets_data,
+            'imperium_color': h.get('imperium_color'),
         })
 
     return JsonResponse({'hexagons': data})
