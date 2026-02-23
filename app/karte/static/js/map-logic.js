@@ -20,7 +20,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // Minimap / Searchbar
     const minimapCanvas = document.getElementById('minimap-canvas');
     const minimapCtx = minimapCanvas ? minimapCanvas.getContext('2d') : null;
-    
+
+    //clickbare Minimap mit 0.20x zoom
+    if (minimapCanvas) {
+        minimapCanvas.addEventListener('click', e => {
+            if (mapBounds.width === 0) return;
+
+            const rect = minimapCanvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // Konvertiere Minimap-Koordinaten in Welt-Koordinaten
+            const scale = Math.min(minimapCanvas.width / mapBounds.width, minimapCanvas.height / mapBounds.height);
+            const offsetX = (minimapCanvas.width - mapBounds.width * scale) / 2;
+            const offsetY = (minimapCanvas.height - mapBounds.height * scale) / 2;
+
+            const worldX = (clickX - offsetX) / scale + mapBounds.minX;
+            const worldY = (clickY - offsetY) / scale + mapBounds.minY;
+
+            // Springe mit der Kamera zur neuen Position, wie bei der Suche
+            camera.x = worldX;
+            camera.y = worldY;
+            camera.zoom = 0.2;
+
+            constrainCamera();
+            requestAnimationFrame(draw);
+        });
+    }
     
     const minimapViewport = document.getElementById('minimap-viewport');
     const zoomDisplay = document.getElementById('zoom-level-display');
@@ -44,8 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let hexagons = [];
     let images = {}; // Image Cache
     let selectedHexId = null;
-    
-    
     let camera = { x: 0, y: 0, zoom: 0.5 }; 
     let isDragging = false;
     let lastMouse = { x: 0, y: 0 };
@@ -191,18 +215,38 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!minimapCtx || mapBounds.width === 0) 
             return;
         
-        minimapCtx.fillStyle = '#111';
+        //minimapCtx.fillStyle = '#111';
         minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
         
         const scale = Math.min(minimapCanvas.width / mapBounds.width, minimapCanvas.height / mapBounds.height);
         const offsetX = (minimapCanvas.width - mapBounds.width * scale) / 2;
         const offsetY = (minimapCanvas.height - mapBounds.height * scale) / 2;
 
-        minimapCtx.fillStyle = '#555';
         hexagons.forEach(hex => {
             const mmX = (hex.x - mapBounds.minX) * scale + offsetX;
             const mmY = (hex.y - mapBounds.minY) * scale + offsetY;
-            minimapCtx.fillRect(mmX, mmY, 2, 2); 
+
+            console.log(hex);
+            // Gelb für Sterne
+            // Blau für Nebel
+            // Grün für nova
+            let hexFillStye = '#111';
+            
+            if (hex.image_url) {
+                //console.log(hex.image_url);
+                if (hex.image_url.toLowerCase().includes('stern')) 
+                    hexFillStye = '#FFFF00'; 
+
+                else if (hex.image_url.toLowerCase().includes('nebel')) 
+                    hexFillStye = '#0000FF'; 
+
+                else if (hex.image_url.toLowerCase().includes('supernova')) 
+                    hexFillStye = '#00ff44'; 
+                
+            } 
+
+            minimapCtx.fillStyle = hexFillStye;
+            minimapCtx.fillRect(Math.floor(mmX), Math.floor(mmY), 2, 2); 
         });
     }
 
@@ -305,7 +349,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Interaktion ---
 
     container.addEventListener('mousedown', e => {
-        if (e.button !== 0) return; // Nur Linksklick
+        if (e.button !== 0) 
+            return; // Nur Linksklick
         isDragging = true;
         lastMouse = { x: e.clientX, y: e.clientY };
         container.style.cursor = 'grabbing';
@@ -337,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const direction = Math.sign(e.deltaY); 
         const scaleFactor = Math.exp(direction * -zoomIntensity); 
         
-        const newZoom = Math.max(0.05, Math.min(5.0, camera.zoom * scaleFactor));
+        const newZoom = Math.max(0.10, Math.min(5.0, camera.zoom * scaleFactor));
         camera.zoom = newZoom;
         constrainCamera();
         
@@ -441,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         e.preventDefault();
                         camera.x = result.hex.x;
                         camera.y = result.hex.y;
-                        camera.zoom = 1.2;
+                        camera.zoom = 0.2;
                         selectedHexId = result.hex.id;
                         
                         searchInput.value = '';
