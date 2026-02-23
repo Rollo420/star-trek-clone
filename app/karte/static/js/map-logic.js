@@ -261,9 +261,25 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.closePath();
     }
 
+    /**
+     * Konvertiert HEX-Farbe zu RGBA mit angegebener Transparenz
+     * @param {string} hex - Hex-Farbe z.B. '#FF5733'
+     * @param {number} alpha - Alpha-Wert zwischen 0 und 1
+     * @returns {string} RGBA-Farbstring
+     */
+    function hexToRgba(hex, alpha) {
+        if (!hex) return `rgba(0, 0, 0, ${alpha})`;
+        // Entferne '#' falls vorhanden
+        hex = hex.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
     function draw() {
         // Hintergrund
-        ctx.fillStyle = '#000000';
+        ctx.fillStyle = '#111';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
@@ -282,13 +298,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hex.x < viewL || hex.x > viewR || hex.y < viewT || hex.y > viewB) 
                 return;
 
-            // Image
+            // Imperium-Farbe mit Transparenz (0.3) zeichnen - GANZ UNTEN als Hintergrund
+            // Wenn Imperium vorhanden, Imperium-Farbe mit 0.3 Alpha, sonst schwarz mit 0.3 Alpha
+            drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
+            if (hex.imperium_color) {
+                ctx.fillStyle = hexToRgba(hex.imperium_color, 0.3);
+            } else {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            }
+            ctx.fill();
+            
+            // Image (über dem Farbhintergrund)
             if (hex.image_url && images[hex.image_url]) {
                 const size = HEX_WIDTH; 
                 ctx.drawImage(images[hex.image_url], hex.x - size/2, hex.y - size/2, size, size);
             }
             
-            // Immer Hexagon-Rahmen zeichnen
+            // Hexagon-Rahmen zeichnen
             drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
             ctx.lineWidth = 1;
             ctx.strokeStyle = '#333';

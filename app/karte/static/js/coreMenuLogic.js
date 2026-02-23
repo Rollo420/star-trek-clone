@@ -6,12 +6,10 @@ function toggleButtonMenu(button, targetId) {
     });
     
     // 2. Den angeklickten Button hervorheben (aktiven Status setzen)
-    document.querySelectorAll('.button-menu .btn').forEach(btn => {
-        btn.classList.remove('btn-primary');
+    document.querySelectorAll('.button-group .nav-btn').forEach(btn => {
+        btn.classList.remove('active-tab-btn', 'btn-light');
         btn.classList.add('btn-dark');
     });
-    button.classList.remove('btn-dark');
-    button.classList.add('btn-primary');
     
     // 3. Wenn targetId angegeben ist, das entsprechende Element einblenden
     if (targetId) {
@@ -20,13 +18,9 @@ function toggleButtonMenu(button, targetId) {
             target.style.display = 'block';
         }
 
-        // Button Styling (Active State)
-        const buttons = document.querySelectorAll('.button-menu button');
-        buttons.forEach(btn => btn.classList.remove('active-tab-btn', 'btn-light'));
-        buttons.forEach(btn => btn.classList.add('btn-dark')); // Reset style
-
+        // Button Styling (Active State) - nur der geklickte Button wird aktiv
         button.classList.remove('btn-dark');
-        button.classList.add('active-tab-btn', 'btn-light'); // Highlight active
+        button.classList.add('active-tab-btn');
     }
 }
 
