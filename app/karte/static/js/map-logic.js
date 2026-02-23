@@ -225,27 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hexagons.forEach(hex => {
             const mmX = (hex.x - mapBounds.minX) * scale + offsetX;
             const mmY = (hex.y - mapBounds.minY) * scale + offsetY;
-
-            console.log(hex);
-            // Gelb für Sterne
-            // Blau für Nebel
-            // Grün für nova
-            let hexFillStye = '#111';
-            
-            if (hex.image_url) {
-                //console.log(hex.image_url);
-                if (hex.image_url.toLowerCase().includes('stern')) 
-                    hexFillStye = '#FFFF00'; 
-
-                else if (hex.image_url.toLowerCase().includes('nebel')) 
-                    hexFillStye = '#0000FF'; 
-
-                else if (hex.image_url.toLowerCase().includes('supernova')) 
-                    hexFillStye = '#00ff44'; 
-                
-            } 
-
-            minimapCtx.fillStyle = hexFillStye;
+            minimapCtx.fillStyle = hexToRgba(hex.imperium_color, 0.3);
             minimapCtx.fillRect(Math.floor(mmX), Math.floor(mmY), 2, 2); 
         });
     }
