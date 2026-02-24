@@ -15,7 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     const loadingIndicator = document.getElementById('map-loading');
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d', { 
+        alpha: false,
+        desynchronized: true
+    });
 
     // Minimap / Searchbar
     const minimapCanvas = document.getElementById('minimap-canvas');
@@ -44,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
             camera.zoom = 0.2;
 
             constrainCamera();
-            requestAnimationFrame(draw);
+            scheduleDraw();
         });
     }
     
@@ -66,13 +69,17 @@ document.addEventListener('DOMContentLoaded', () => {
         HEX_CORNERS.push({ x: Math.cos(angle), y: Math.sin(angle) });
     }
 
-    // State
+    // --- State ---
     let hexagons = [];
+    let hexagonsByColor = {}; 
+    let spatialGrid = new Map(); 
+    const GRID_BUCKET_SIZE = HEX_WIDTH * 2; 
     let images = {}; // Image Cache
     let selectedHexId = null;
     let camera = { x: 0, y: 0, zoom: 0.5 }; 
     let isDragging = false;
     let lastMouse = { x: 0, y: 0 };
+    let drawScheduled = false; // Performance: Verhindert mehrfache draw()-Aufrufe pro Frame
 
     // Initialisierung 
 
@@ -109,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         setupMinimap(); 
         constrainCamera();
-        requestAnimationFrame(draw);
+        scheduleDraw();
     }
     window.addEventListener('resize', resize);
     
@@ -118,11 +125,20 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => res.json())
         .then(data => {
             hexagons = data.hexagons;
+            
+            // Farben vorberechnen und gruppieren
+            hexagonsByColor = {};
+            hexagons.forEach(hex => {
+                hex.cachedColor = hex.imperium_color ? hexToRgba(hex.imperium_color, 0.3) : 'rgba(0, 0, 0, 0.3)';
+                
+                if (!hexagonsByColor[hex.cachedColor]) hexagonsByColor[hex.cachedColor] = [];
+                hexagonsByColor[hex.cachedColor].push(hex);
+            });
+            buildSpatialGrid();
             preloadImages(hexagons);
         })
         .catch(err => console.error("Fehler beim Laden der Karte:", err));
     
-    // Initial resize and draw after DOM is fully ready
     setTimeout(() => {
         resize();
     }, 200);
@@ -157,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         calculateMapBounds();
         setupMinimap();
         constrainCamera();
-        requestAnimationFrame(draw);
+        scheduleDraw();
     }
 
     function calculateMapBounds() {
@@ -222,18 +238,57 @@ document.addEventListener('DOMContentLoaded', () => {
         const offsetX = (minimapCanvas.width - mapBounds.width * scale) / 2;
         const offsetY = (minimapCanvas.height - mapBounds.height * scale) / 2;
 
-        hexagons.forEach(hex => {
+        // Performance: Nur jeden 3. Punkt zeichnen, visuell kaum ein Unterschied
+        for (let i = 0; i < hexagons.length; i += 3) {
+            const hex = hexagons[i];
             const mmX = (hex.x - mapBounds.minX) * scale + offsetX;
             const mmY = (hex.y - mapBounds.minY) * scale + offsetY;
-            minimapCtx.fillStyle = hexToRgba(hex.imperium_color, 0.3);
+            minimapCtx.fillStyle = hex.cachedColor; // Optimierung: Cache nutzen
             minimapCtx.fillRect(Math.floor(mmX), Math.floor(mmY), 2, 2); 
-        });
+        }
     }
 
-    // Rendering
+    function buildSpatialGrid() {
+        spatialGrid.clear();
+        for (const hex of hexagons) {
+            const gx = Math.floor(hex.x / GRID_BUCKET_SIZE);
+            const gy = Math.floor(hex.y / GRID_BUCKET_SIZE);
+            const key = `${gx},${gy}`;
+            if (!spatialGrid.has(key)) {
+                spatialGrid.set(key, []);
+            }
+            spatialGrid.get(key).push(hex);
+        }
+    }
 
+    function getVisibleHexesFromGrid(viewL, viewR, viewT, viewB) {
+        const result = [];
+        const minGX = Math.floor(viewL / GRID_BUCKET_SIZE);
+        const maxGX = Math.floor(viewR / GRID_BUCKET_SIZE);
+        const minGY = Math.floor(viewT / GRID_BUCKET_SIZE);
+        const maxGY = Math.floor(viewB / GRID_BUCKET_SIZE);
+
+        for (let gx = minGX; gx <= maxGX; gx++) {
+            for (let gy = minGY; gy <= maxGY; gy++) {
+                const key = `${gx},${gy}`;
+                if (spatialGrid.has(key)) {
+                    // Hier nicht weiter filtern, das Culling passiert schon beim Zeichnen
+                    result.push(...spatialGrid.get(key));
+                }
+            }
+        }
+        return result;
+    }
+
+    function scheduleDraw() {
+        if (drawScheduled) return;
+        drawScheduled = true;
+        requestAnimationFrame(() => {
+            draw();
+            drawScheduled = false;
+        });
+    }
     function drawHexagonPath(ctx, x, y, r) {
-        ctx.beginPath();
         ctx.moveTo(x + r * HEX_CORNERS[0].x, y + r * HEX_CORNERS[0].y);
         for (let i = 1; i < 6; i++) {
             ctx.lineTo(x + r * HEX_CORNERS[i].x, y + r * HEX_CORNERS[i].y);
@@ -273,35 +328,53 @@ document.addEventListener('DOMContentLoaded', () => {
         const viewT = camera.y - (canvas.height / 2) / camera.zoom - HEX_SIZE;
         const viewB = camera.y + (canvas.height / 2) / camera.zoom + HEX_SIZE;
 
-        hexagons.forEach(hex => {
-            // Skip wenn außerhalb des Bildschirms
-            if (hex.x < viewL || hex.x > viewR || hex.y < viewT || hex.y > viewB) 
-                return;
+        const visibleHexes = getVisibleHexesFromGrid(viewL, viewR, viewT, viewB);
 
-            // Imperium-Farbe mit Transparenz (0.3) zeichnen - GANZ UNTEN als Hintergrund
-            // Wenn Imperium vorhanden, Imperium-Farbe mit 0.3 Alpha, sonst schwarz mit 0.3 Alpha
-            drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
-            if (hex.imperium_color) {
-                ctx.fillStyle = hexToRgba(hex.imperium_color, 0.3);
-            } else {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        const visibleHexesByColor = {};
+        for (const hex of visibleHexes) {
+            if (hex.x < viewL || hex.x > viewR || hex.y < viewT || hex.y > viewB) continue;
+            if (!visibleHexesByColor[hex.cachedColor]) {
+                visibleHexesByColor[hex.cachedColor] = [];
             }
-            ctx.fill();
-            
-            // Image (über dem Farbhintergrund)
+            visibleHexesByColor[hex.cachedColor].push(hex);
+        }
+
+        // Hintergründe
+        for (const [color, hexList] of Object.entries(visibleHexesByColor)) {
+            ctx.beginPath();
+            let hasVisible = false;
+            for (const hex of hexList) {
+                drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
+                hasVisible = true;
+            }
+            if (hasVisible) {
+                ctx.fillStyle = color;
+                ctx.fill();
+            }
+        }
+
+        // Gitterlinien
+        if (camera.zoom > 0.4) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            for (const hex of visibleHexes) {
+                if (hex.x < viewL || hex.x > viewR || hex.y < viewT || hex.y > viewB) continue; // Culling
+                drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
+            }
+            ctx.stroke();
+        }
+
+        // Bilder & Highlights (Individuell) ---
+        visibleHexes.forEach(hex => {
             if (hex.image_url && images[hex.image_url]) {
                 const size = HEX_WIDTH; 
                 ctx.drawImage(images[hex.image_url], hex.x - size/2, hex.y - size/2, size, size);
             }
             
-            // Hexagon-Rahmen zeichnen
-            drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = '#333';
-            ctx.stroke();
-
             // Indikator für Schiffe zeichnen (Gelbes Hexagon)
             if (hex.has_ships) {
+                ctx.beginPath(); 
                 drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = '#FFFF00';
@@ -310,6 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Selektion Highlight
             if (hex.id == selectedHexId) {
+                ctx.beginPath(); 
                 drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
                 ctx.lineWidth = 5;
                 ctx.strokeStyle = '#00ff00';
@@ -378,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
             camera.y -= dy / camera.zoom;
             
             constrainCamera();
-            requestAnimationFrame(draw);
+            scheduleDraw();
         }
     });
 
@@ -392,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
         camera.zoom = newZoom;
         constrainCamera();
         
-        requestAnimationFrame(draw);
+        scheduleDraw();
     }, { passive: false });
 
     container.addEventListener('click', e => {
@@ -409,22 +483,28 @@ document.addEventListener('DOMContentLoaded', () => {
         let closestHex = null;
         let minDistSq = Infinity;
         const radiusSq = (HEX_SIZE) * (HEX_SIZE); 
+        
+        // PERFORMANCE: Suche nur in der näheren Umgebung statt alle 32.000
+        const searchHexes = getVisibleHexesFromGrid(
+            worldX - HEX_WIDTH, worldX + HEX_WIDTH,
+            worldY - HEX_HEIGHT, worldY + HEX_HEIGHT
+        );
 
-        for (let i = 0; i < hexagons.length; i++) {
-            const h = hexagons[i];
+        for (const h of searchHexes) {
             const dx = h.x - worldX;
             const dy = h.y - worldY;
             const distSq = dx*dx + dy*dy;
             
-            if (distSq < radiusSq && distSq < minDistSq) {
+            if (distSq < minDistSq) {
                 minDistSq = distSq;
                 closestHex = h;
             }
         }
 
-        if (closestHex) {
+        // Finale Prüfung, ob der nächste Treffer auch wirklich im Radius ist
+        if (closestHex && minDistSq < radiusSq) {
             selectedHexId = closestHex.id;
-            requestAnimationFrame(draw);
+            scheduleDraw();
             
             const event = new CustomEvent('sectorChanged', { detail: { sectorID: closestHex.id } });
             document.dispatchEvent(event);
@@ -498,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         searchInput.value = '';
                         searchResultsContainer.innerHTML = '';
                         constrainCamera();
-                        requestAnimationFrame(draw);
+                        scheduleDraw();
 
                         const event = new CustomEvent('sectorChanged', { detail: { sectorID: result.hex.id } });
                         document.dispatchEvent(event);
