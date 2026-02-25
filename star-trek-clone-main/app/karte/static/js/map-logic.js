@@ -284,8 +284,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (drawScheduled) return;
         drawScheduled = true;
         requestAnimationFrame(() => {
+            drawScheduled = false; // ZUERST zurücksetzen, damit draw() sich selbst neu aufrufen kann
             draw();
-            drawScheduled = false;
         });
     }
     function drawHexagonPath(ctx, x, y, r) {
@@ -359,13 +359,14 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.strokeStyle = '#333';
             ctx.lineWidth = 1;
             for (const hex of visibleHexes) {
-                if (hex.x < viewL || hex.x > viewR || hex.y < viewT || hex.y > viewB) continue; // Culling
+                if (hex.x < viewL || hex.x > viewR || hex.y < viewT || hex.y > viewB) 
+                    continue; 
                 drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
             }
             ctx.stroke();
         }
 
-        // Bilder & Highlights (Individuell) ---
+        // Bilder & Highlights
         visibleHexes.forEach(hex => {
             if (hex.image_url && images[hex.image_url]) {
                 const size = HEX_WIDTH; 
@@ -383,17 +384,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Selektion Highlight
             if (hex.id == selectedHexId) {
+                const blinkDuration = 1000; 
+                const blinkPhase = (Math.sin(Date.now() / (blinkDuration / (2 * Math.PI))) + 1) / 2;
+                const alpha = 0.2 + (0.8 * blinkPhase); 
+
+                ctx.save(); 
                 ctx.beginPath(); 
                 drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
-                ctx.lineWidth = 5;
-                ctx.strokeStyle = '#00ff00';
+                
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = `rgba(0, 255, 0, ${alpha})`;
+
+                // zoom, passt sich der Kamera an
+                ctx.lineWidth = 6 / camera.zoom;
+                ctx.strokeStyle = `rgba(0, 255, 0, ${alpha})`;
                 ctx.stroke();
+                ctx.restore();
             }
         });
 
         ctx.restore();
 
         updateMinimap();
+
+        // Hexagon ausgewählt => Animation fortsetzen!
+        if (selectedHexId !== null) {
+            scheduleDraw();
+        }
     }
 
     function updateMinimap() {
@@ -501,7 +518,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Finale Prüfung, ob der nächste Treffer auch wirklich im Radius ist
         if (closestHex && minDistSq < radiusSq) {
             selectedHexId = closestHex.id;
             scheduleDraw();
