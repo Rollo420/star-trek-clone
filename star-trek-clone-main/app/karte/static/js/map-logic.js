@@ -462,7 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const direction = Math.sign(e.deltaY); 
         const scaleFactor = Math.exp(direction * -zoomIntensity); 
         
-        const newZoom = Math.max(0.10, Math.min(5.0, camera.zoom * scaleFactor));
+        const newZoom = Math.max(0.20, Math.min(1.0, camera.zoom * scaleFactor));
         camera.zoom = newZoom;
         constrainCamera();
         
