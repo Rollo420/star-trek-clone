@@ -231,19 +231,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!minimapCtx || mapBounds.width === 0) 
             return;
         
-        //minimapCtx.fillStyle = '#111';
         minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
         
         const scale = Math.min(minimapCanvas.width / mapBounds.width, minimapCanvas.height / mapBounds.height);
         const offsetX = (minimapCanvas.width - mapBounds.width * scale) / 2;
         const offsetY = (minimapCanvas.height - mapBounds.height * scale) / 2;
 
-        // Performance: Nur jeden 3. Punkt zeichnen, visuell kaum ein Unterschied
         for (let i = 0; i < hexagons.length; i++) {
             const hex = hexagons[i];
             const mmX = (hex.x - mapBounds.minX) * scale + offsetX;
             const mmY = (hex.y - mapBounds.minY) * scale + offsetY;
-            minimapCtx.fillStyle = hex.cachedColor; // Optimierung: Cache nutzen
+            minimapCtx.fillStyle = hex.cachedColor; 
             minimapCtx.fillRect(Math.floor(mmX), Math.floor(mmY), 2, 2); 
         }
     }
@@ -271,10 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let gx = minGX; gx <= maxGX; gx++) {
             for (let gy = minGY; gy <= maxGY; gy++) {
                 const key = `${gx},${gy}`;
-                if (spatialGrid.has(key)) {
-                    // Hier nicht weiter filtern, das Culling passiert schon beim Zeichnen
+                if (spatialGrid.has(key)) 
                     result.push(...spatialGrid.get(key));
-                }
             }
         }
         return result;
@@ -284,15 +280,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (drawScheduled) return;
         drawScheduled = true;
         requestAnimationFrame(() => {
-            drawScheduled = false; // ZUERST zurücksetzen, damit draw() sich selbst neu aufrufen kann
+            drawScheduled = false;
             draw();
         });
     }
     function drawHexagonPath(ctx, x, y, r) {
         ctx.moveTo(x + r * HEX_CORNERS[0].x, y + r * HEX_CORNERS[0].y);
-        for (let i = 1; i < 6; i++) {
+
+        for (let i = 1; i < 6; i++) 
             ctx.lineTo(x + r * HEX_CORNERS[i].x, y + r * HEX_CORNERS[i].y);
-        }
+        
         ctx.closePath();
     }
 
@@ -332,10 +329,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const visibleHexesByColor = {};
         for (const hex of visibleHexes) {
-            if (hex.x < viewL || hex.x > viewR || hex.y < viewT || hex.y > viewB) continue;
-            if (!visibleHexesByColor[hex.cachedColor]) {
+            if (hex.x < viewL || hex.x > viewR || hex.y < viewT || hex.y > viewB) 
+                continue;
+
+            if (!visibleHexesByColor[hex.cachedColor]) 
                 visibleHexesByColor[hex.cachedColor] = [];
-            }
+            
             visibleHexesByColor[hex.cachedColor].push(hex);
         }
 
@@ -361,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const hex of visibleHexes) {
                 if (hex.x < viewL || hex.x > viewR || hex.y < viewT || hex.y > viewB) 
                     continue; 
+
                 drawHexagonPath(ctx, hex.x, hex.y, HEX_SIZE);
             }
             ctx.stroke();
@@ -408,9 +408,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateMinimap();
 
         // Hexagon ausgewählt => Animation fortsetzen!
-        if (selectedHexId !== null) {
+        if (selectedHexId !== null) 
             scheduleDraw();
-        }
+        
     }
 
     function updateMinimap() {
@@ -440,10 +440,11 @@ document.addEventListener('DOMContentLoaded', () => {
         minimapViewport.style.height = `${mmH}px`;
         
         // Zoom-Anzeige aktualisieren
-        if (zoomDisplay) zoomDisplay.textContent = `ZOOM: ${camera.zoom.toFixed(2)}x`;
+        if (zoomDisplay) 
+            zoomDisplay.textContent = `ZOOM: ${camera.zoom.toFixed(2)}x`;
     }
     
-    // --- Interaktion ---
+    //Interaktion
 
     container.addEventListener('mousedown', e => {
         if (e.button !== 0) 
@@ -562,6 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
+                // Suche nach Kolonien
                 if (hex.planets) {
                     for (const planet of hex.planets) {
                         if (planet.name.toLowerCase().includes(query)) {
@@ -605,9 +607,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         document.addEventListener('click', (e) => {
-            if (!searchResultsContainer.contains(e.target) && e.target !== searchInput) {
+            if (!searchResultsContainer.contains(e.target) && e.target !== searchInput) 
                 searchResultsContainer.innerHTML = '';
-            }
+            
         });
     }
 });
