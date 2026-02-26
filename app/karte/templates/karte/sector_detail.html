@@ -14,28 +14,32 @@ This will be rendered as HTML and injected into the page via AJAX.
     align-items: center;
     gap: 1em;
     margin-bottom: 1rem;
+    color: #00ffff;
 }
 .sector-header img {
     border-radius: 50%;
-    border: 2px solid #f39c12;
+    border: 2px solid #00ffff;
 }
 .sector-info {
     font-weight: bold;
     margin-bottom: 1rem;
+    color: #cccccc;
 }
 .planet-list, .ship-list {
     margin-bottom: 1rem;
 }
 .planet-item {
-    border: 1px solid #ddd;
+    border: 1px solid rgba(0, 255, 255, 0.3);
     border-radius: 8px;
     padding: 0.75rem 1rem;
     margin-bottom: 0.75rem;
-    background-color: #f9f9f9;
+    background: linear-gradient(135deg, rgba(0, 18, 34, 0.9) 0%, rgba(0, 36, 68, 0.9) 100%);
     cursor: pointer;
+    color: #cccccc;
 }
 .planet-item:hover {
-    background-color: #f1f1f1;
+    background: linear-gradient(135deg, rgba(0, 36, 68, 0.95) 0%, rgba(0, 54, 102, 0.95) 100%);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
 }
 .planet-header {
     font-weight: bold;
@@ -43,13 +47,14 @@ This will be rendered as HTML and injected into the page via AJAX.
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    color: #00ffff;
 }
 .planet-details {
     margin-top: 0.5rem;
     padding-left: 1.5rem;
     display: none;
     font-size: 0.9rem;
-    color: #555;
+    color: #cccccc;
 }
 .planet-item.active .planet-details {
     display: block;
@@ -66,10 +71,11 @@ This will be rendered as HTML and injected into the page via AJAX.
 }
 .ship-list li {
     padding: 0.25rem 0;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    color: #cccccc;
 }
 .ship-image {
     height: 40px;
@@ -79,7 +85,7 @@ This will be rendered as HTML and injected into the page via AJAX.
 }
 .resource-list {
     font-size: 0.85rem;
-    color: #666;
+    color: #aaaaaa;
     margin-top: 0.5rem;
 }
 </style>
