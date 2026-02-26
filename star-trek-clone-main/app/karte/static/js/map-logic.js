@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const offsetY = (minimapCanvas.height - mapBounds.height * scale) / 2;
 
         // Performance: Nur jeden 3. Punkt zeichnen, visuell kaum ein Unterschied
-        for (let i = 0; i < hexagons.length; i += 3) {
+        for (let i = 0; i < hexagons.length; i++) {
             const hex = hexagons[i];
             const mmX = (hex.x - mapBounds.minX) * scale + offsetX;
             const mmY = (hex.y - mapBounds.minY) * scale + offsetY;
