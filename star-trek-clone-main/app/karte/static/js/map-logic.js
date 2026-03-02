@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => res.json())
         .then(data => {
             hexagons = data.hexagons;
-            
+            window.hexagons = hexagons;
             // Farben vorberechnen und gruppieren
             hexagonsByColor = {};
             hexagons.forEach(hex => {

@@ -17,11 +17,8 @@ GRID_CENTER_R = 0
 def index(request):
     return render(request, 'karte/base.html')
 
+
 def map_view(request):
-    """
-    Rendert nur noch das HTML-Gerüst. Die eigentlichen Daten werden asynchron
-    über map_data_json nachgeladen. Das beschleunigt den Seitenaufbau massiv.
-    """
     hexagons = []
     grid_width = 0
     grid_height = 0
@@ -33,6 +30,7 @@ def map_view(request):
         "grid_height": grid_height,
         "rotation_90": rotation_90,
     })
+
 
 def map_data_json(request):
     """
